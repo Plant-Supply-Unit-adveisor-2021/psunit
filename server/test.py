@@ -1,5 +1,5 @@
-from server.interface import request_challenge, get_signed_challenge
+from server.interface import request_challenge, get_signed_challenge, post_data
 
 
 def test():
-    print(get_signed_challenge())
+    print(post_data())

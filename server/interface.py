@@ -134,3 +134,18 @@ def get_signed_challenge(session=None):
                                   hashes.SHA256())
         # return url safe string
         return base64.urlsafe_b64encode(signed)
+
+
+def post_data():
+    """
+    function used to submit data to the server
+    """
+    session = requests.session()
+
+    context = dict()
+    context['signed_challenge'] = get_signed_challenge(session)
+    context['identity_key'] = SERVER_CONFIG['identity_key']
+
+    print(context['signed_challenge'])
+
+    return make_request('/psucontrol/add_data_measurement', False, context, session)
