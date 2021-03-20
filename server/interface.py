@@ -136,7 +136,7 @@ def get_signed_challenge(session=None):
         return base64.urlsafe_b64encode(signed)
 
 
-def post_data():
+def post_data(temperature, air_humidity, ground_humidity, brightness, fill_level):
     """
     function used to submit data to the server
     """
@@ -145,7 +145,13 @@ def post_data():
     context = dict()
     context['signed_challenge'] = get_signed_challenge(session)
     context['identity_key'] = SERVER_CONFIG['identity_key']
+    # add measurements to the context
+    context['temperature'] = temperature
+    context['air_humidity'] = air_humidity
+    context['ground_humidity'] = ground_humidity
+    context['brightness'] = brightness
+    context['fill_level'] = fill_level
 
     print(context['signed_challenge'])
 
-    return make_request('/psucontrol/add_data_measurement', False, context, session)
+    return make_request('/psucontrol/add_data_measurement', True, context, session)
