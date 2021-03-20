@@ -1,7 +1,8 @@
+import base64
 from pathlib import Path
 from json import load as json_load, dump as json_dump
 from time import sleep
-from requests import post as requests_post
+import requests
 from requests.exceptions import RequestException
 
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -28,6 +29,31 @@ def save_server_config():
     function to save the current SERVER_CONFIG dict to the corresponding file
     """
     json_dump(SERVER_CONFIG, open(SC_FILE, 'w'))
+
+
+def make_request(uri, check_status_ok, context=None, session=None):
+    """
+    function trying to make the request at maximum 5 times
+    the 5 attempts are timed in steps
+    """
+    if context is None:
+        context = dict()
+    if session is None:
+        session = requests.session()
+
+    attempt = 0
+    while attempt < 5:
+        attempt += 1
+        try:
+            res = session.post(SERVER_CONFIG['URL'] + uri, context).json()
+            # check whether status is ok and redo request if check_status_ok is true
+            if check_status_ok and res['status'] != 'ok':
+                continue
+            return res
+        except RequestException as e:
+            print("Connection failed. Retry in " + str(attempt * attempt * 4) + "secs.")
+            print(e)
+            sleep(attempt * attempt * 4)
 
 
 def generate_rsa_key():
@@ -57,51 +83,54 @@ def register_at_server():
     At maximum there will be made 5 attempts to register
     returns: True if the registration was successful, otherwise False
     """
-    attempts = 0
-    while attempts < 5:
-        # generate RSA key pair
-        public_key = generate_rsa_key()
 
-        # make request to register PSU at server
-        try:
-            r = requests_post(SERVER_CONFIG['URL'] + '/psucontrol/register_new_psu', {'public_rsa_key': public_key})
-            data = r.json()
-        except RequestException:
-            data = dict(status='failed')
-            print('Connection failed')
+    public_key = generate_rsa_key()
+    res = make_request('/psucontrol/register_new_psu', True, {'public_rsa_key': public_key}, None)
 
-        # evaluate request
-        if data['status'] == 'ok':
-            SERVER_CONFIG['identity_key'] = data['identity_key']
-            SERVER_CONFIG['pairing_key'] = data['pairing_key']
-            save_server_config()
-            return True
-        else:
-            # retry in 60 seconds
-            attempts += 1
-            sleep(60)
-
-    return False
+    if res['status'] == 'ok':
+        SERVER_CONFIG['identity_key'] = res['identity_key']
+        SERVER_CONFIG['pairing_key'] = res['pairing_key']
+        save_server_config()
+        return True
+    else:
+        return False
 
 
-def test():
-    private_key = serialization.load_pem_private_key(bytes(SERVER_CONFIG['private_key'], 'utf-8'), password=None)
-    public_key = serialization.load_pem_public_key(bytes(SERVER_CONFIG['public_key'], 'utf-8'))
-    print(len(SERVER_CONFIG['public_key']))
-    message = bytes('hey', 'utf-8')
-    print(str(message, 'utf-8'))
-    encrypted = private_key.sign(message,
-                                 padding.PSS(
-                                     mgf=padding.MGF1(hashes.SHA256()),
-                                     salt_length=padding.PSS.MAX_LENGTH),
-                                 hashes.SHA256())
-    print(encrypted)
-    try:
-        public_key.verify(encrypted, bytes('hey', 'utf-8'),
-                          padding.PSS(
-                              mgf=padding.MGF1(hashes.SHA256()),
-                              salt_length=padding.PSS.MAX_LENGTH),
-                          hashes.SHA256())
-        print('TRUE')
-    except InvalidSignature:
-        print('WRONG')
+def request_challenge(session=None):
+    """
+    function used to get a challenge for the challenge-response-authentication
+    returns the challenge or
+    """
+    if session is None:
+        session = requests.session()
+
+    res = make_request("/psucontrol/get_challenge", True, {'identity_key': SERVER_CONFIG['identity_key']}, session)
+    if res['status'] == 'ok':
+        return res['challenge']
+    else:
+        return None
+
+
+def get_signed_challenge(session=None):
+    """
+    function used to request a challenge and sign it with the private key
+    """
+    if session is None:
+        session = requests.session()
+    # get message
+    message = request_challenge(session)
+    print(message)
+
+    if message is None:
+        # something failed
+        return None
+    else:
+        # sign message with private key
+        private_key = serialization.load_pem_private_key(bytes(SERVER_CONFIG['private_key'], 'utf-8'), password=None)
+        signed = private_key.sign(bytes(message, 'utf-8'),
+                                  padding.PSS(
+                                      mgf=padding.MGF1(hashes.SHA256()),
+                                      salt_length=padding.PSS.MAX_LENGTH),
+                                  hashes.SHA256())
+        # return url safe string
+        return base64.urlsafe_b64encode(signed)
