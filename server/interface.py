@@ -20,7 +20,7 @@ MAX_ATTEMPTS = 5
 # configuration of the config
 SC_FILE = Path("server.config.json")
 SERVER_CONFIG = {
-    'URL': 'http://127.0.0.1:8000-'
+    'URL': 'http://127.0.0.1:8000'
     # 'URL': 'https://psu-server.duckdns.org'
 }
 
@@ -145,16 +145,34 @@ def register_at_server():
 def request_challenge(session=None):
     """
     function used to get a challenge for the challenge-response-authentication
-    returns the challenge or
+    returns the challenge or None
     """
     if session is None:
         session = requests.session()
 
-    res = make_request("/psucontrol/get_challenge", True, {'identity_key': SERVER_CONFIG['identity_key']}, session)
-    if res['status'] == 'ok':
-        return res['challenge']
-    else:
-        return None
+    attempt = 0
+
+    while attempt < MAX_ATTEMPTS:
+
+        attempt += 1
+
+        # try to make the request
+        try:
+            res = session.post(SERVER_CONFIG['URL'] + '/psucontrol/get_challenge',
+                               data={'identity_key': SERVER_CONFIG['identity_key']}).json()
+        except RequestException:
+            timeout_after_error(attempt, SERVER_ERROR['0xC1'], multiplier=10)
+            continue
+
+        # check response for errors
+        if res['status'] == 'ok':
+            return res['challenge']
+        else:
+            # some wired error -> do not retry
+            handle_server_error(res)
+            return None
+
+    return None
 
 
 def get_signed_challenge(session=None):
@@ -163,23 +181,23 @@ def get_signed_challenge(session=None):
     """
     if session is None:
         session = requests.session()
+
     # get message
     message = request_challenge(session)
-    print(message)
 
     if message is None:
         # something failed
         return None
-    else:
-        # sign message with private key
-        private_key = serialization.load_pem_private_key(bytes(SERVER_CONFIG['private_key'], 'utf-8'), password=None)
-        signed = private_key.sign(bytes(message, 'utf-8'),
-                                  padding.PSS(
-                                      mgf=padding.MGF1(hashes.SHA256()),
-                                      salt_length=padding.PSS.MAX_LENGTH),
-                                  hashes.SHA256())
-        # return url safe string
-        return base64.urlsafe_b64encode(signed)
+
+    # sign message with private key
+    private_key = serialization.load_pem_private_key(bytes(SERVER_CONFIG['private_key'], 'utf-8'), password=None)
+    signed = private_key.sign(bytes(message, 'utf-8'),
+                              padding.PSS(
+                                  mgf=padding.MGF1(hashes.SHA256()),
+                                  salt_length=padding.PSS.MAX_LENGTH),
+                              hashes.SHA256())
+    # return url safe string
+    return base64.urlsafe_b64encode(signed)
 
 
 def post_data(temperature, air_humidity, ground_humidity, brightness, fill_level, timestamp_str):

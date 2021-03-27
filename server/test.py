@@ -3,4 +3,4 @@ from time import sleep
 
 
 def test():
-    print(server.interface.register_at_server())
+    print(server.interface.request_challenge())
