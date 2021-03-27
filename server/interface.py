@@ -1,18 +1,25 @@
-import base64
 from pathlib import Path
 from json import load as json_load, dump as json_dump
 from time import sleep
+
 import requests
 from requests.exceptions import RequestException
 
+import base64
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.exceptions import InvalidSignature
+
+from ui.error import handle_server_error
+
+SERVER_ERROR = {
+    '0xC1' : {'error_code':'0xC1', 'error_message':'Could not connect to server'}
+}
 
 # configuration of the config
 SC_FILE = Path("server.config.json")
 SERVER_CONFIG = {
-    'URL': 'https://psu-server.duckdns.org'
+    'URL': 'http://127.0.0.1:8000'
+    # 'URL': 'https://psu-server.duckdns.org'
 }
 
 if SC_FILE.exists():
@@ -78,22 +85,48 @@ def generate_rsa_key():
 
 def register_at_server():
     """
-    function which needs to be called in the setup process to register at server
-    and get an identity key which will be stored in the server.config.json file.
+    function which needs to be called in the setup process to register at server in order
+    to get an identity and pairing key which will be stored in the server.config.json file.
     At maximum there will be made 5 attempts to register
     returns: True if the registration was successful, otherwise False
     """
 
-    public_key = generate_rsa_key()
-    res = make_request('/psucontrol/register_new_psu', True, {'public_rsa_key': public_key}, None)
+    session = requests.session()
+    attempt = 0
 
-    if res['status'] == 'ok':
-        SERVER_CONFIG['identity_key'] = res['identity_key']
-        SERVER_CONFIG['pairing_key'] = res['pairing_key']
-        save_server_config()
-        return True
-    else:
-        return False
+    while attempt < 5:
+
+        # wait before retry
+        sleep(attempt ** 3 * 10)
+        attempt += 1
+
+        # generate rsa keys
+        public_key = generate_rsa_key()
+
+        # try to make the request
+        try:
+            res = session.post(SERVER_CONFIG['URL'] + '/psucontrol/register_new_psu', json={'public_rsa_key': public_key})
+        except RequestException:
+            handle_server_error(SERVER_ERROR['0xC1'], retry_timeout=attempt ** 3 * 10)
+            continue
+
+        # check response for errors
+        if res['status'] == 'ok':
+            SERVER_CONFIG['identity_key'] = res['identity_key']
+            SERVER_CONFIG['pairing_key'] = res['pairing_key']
+            save_server_config()
+            return True
+
+        elif res['status'] == 'failed' and res['error_code'] == '0xD1':
+            # Database error on server side -> retry
+            handle_server_error(res, retry_timeout=attempt ** 3 * 10)
+
+        else:
+            # some other wired error -> do not retry
+            handle_server_error(res)
+            return False
+
+    return False
 
 
 def request_challenge(session=None):
