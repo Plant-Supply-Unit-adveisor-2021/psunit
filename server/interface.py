@@ -1,5 +1,6 @@
 from pathlib import Path
 from json import load as json_load, dump as json_dump
+from json.decoder import JSONDecodeError
 from time import sleep
 
 import requests
@@ -52,32 +53,6 @@ def timeout_after_error(attempt, error, *, multiplier=1):
     else:
         handle_server_error(error)
 
-
-def make_request(uri, check_status_ok, context=None, session=None):
-    """
-    function trying to make the request at maximum 5 times
-    the 5 attempts are timed in steps
-    """
-    if context is None:
-        context = dict()
-    if session is None:
-        session = requests.session()
-
-    attempt = 0
-    while attempt < 5:
-        attempt += 1
-        try:
-            res = session.post(SERVER_CONFIG['URL'] + uri, context).json()
-            # check whether status is ok and redo request if check_status_ok is true
-            if check_status_ok and res['status'] != 'ok':
-                continue
-            return res
-        except RequestException as e:
-            print("Connection failed. Retry in " + str(attempt * attempt * 4) + "secs.")
-            print(e)
-            sleep(attempt * attempt * 4)
-
-
 def generate_rsa_key():
     """
     function creating the needed rsa key
@@ -120,7 +95,7 @@ def register_at_server():
         try:
             res = session.post(SERVER_CONFIG['URL'] + '/psucontrol/register_new_psu',
                                data={'public_rsa_key': public_key}).json()
-        except RequestException:
+        except (RequestException, JSONDecodeError):
             timeout_after_error(attempt, SERVER_ERROR['0xC1'], multiplier=10)
             continue
 
@@ -160,7 +135,7 @@ def request_challenge(session=None):
         try:
             res = session.post(SERVER_CONFIG['URL'] + '/psucontrol/get_challenge',
                                data={'identity_key': SERVER_CONFIG['identity_key']}).json()
-        except RequestException:
+        except (RequestException, JSONDecodeError):
             timeout_after_error(attempt, SERVER_ERROR['0xC1'], multiplier=10)
             continue
 
@@ -200,15 +175,19 @@ def get_signed_challenge(session=None):
     return base64.urlsafe_b64encode(signed)
 
 
-def post_data(temperature, air_humidity, ground_humidity, brightness, fill_level, timestamp_str):
+def post_data(temperature, air_humidity, ground_humidity, brightness, fill_level, timestamp_str, *, session=None):
     """
     function used to submit data to the server
+    returns: success of operation
     """
-    session = requests.session()
+    if session is None:
+        session = requests.session()
 
     context = dict()
-    context['signed_challenge'] = get_signed_challenge(session)
+
+    # add identification information
     context['identity_key'] = SERVER_CONFIG['identity_key']
+
     # add measurements to the context
     context['temperature'] = temperature
     context['air_humidity'] = air_humidity
@@ -217,6 +196,37 @@ def post_data(temperature, air_humidity, ground_humidity, brightness, fill_level
     context['fill_level'] = fill_level
     context['timestamp'] = timestamp_str
 
-    print(context['signed_challenge'])
+    attempt = 0
 
-    return make_request('/psucontrol/add_data_measurement', True, context, session)
+    while attempt < MAX_ATTEMPTS:
+
+        attempt += 1
+
+        # get authentication information
+        context['signed_challenge'] = get_signed_challenge(session)
+        if context['signed_challenge'] is None:
+            # something with getting the challenge went wrong
+            return False
+
+        # try to make the request
+        try:
+            res = session.post(SERVER_CONFIG['URL'] + '/psucontrol/add_data_measurement',
+                               data=context).json()
+        except (RequestException, JSONDecodeError):
+            timeout_after_error(attempt, SERVER_ERROR['0xC1'], multiplier=10)
+            continue
+
+        # check response for errors
+        if res['status'] == 'ok':
+            return True
+
+        elif res['status'] == 'failed' and (res['error_code'] == '0xD2' or res['error_code'] == '0xA2'):
+            # database or authentication error -> retry
+            timeout_after_error(attempt, res)
+
+        else:
+            # some other wired error -> do not retry
+            handle_server_error(res)
+            return False
+
+    return False
