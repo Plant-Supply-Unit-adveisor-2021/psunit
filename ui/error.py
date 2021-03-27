@@ -6,4 +6,4 @@ def handle_server_error(error_response, *, retry_timeout=0):
     print('   ERROR_CODE: ' + error_response['error_code'])
     print('   ERROR MESSAGE: ' + error_response['error_message'])
     if retry_timeout != 0:
-        print('   TIME TO RETRY: ' + error_response['error_message'])
+        print('   TIME TO RETRY: ' + str(retry_timeout))

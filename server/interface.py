@@ -12,13 +12,15 @@ from cryptography.hazmat.primitives import serialization, hashes
 from ui.error import handle_server_error
 
 SERVER_ERROR = {
-    '0xC1' : {'error_code':'0xC1', 'error_message':'Could not connect to server'}
+    '0xC1': {'error_code': '0xC1', 'error_message': 'Could not connect to server'}
 }
+
+MAX_ATTEMPTS = 5
 
 # configuration of the config
 SC_FILE = Path("server.config.json")
 SERVER_CONFIG = {
-    'URL': 'http://127.0.0.1:8000'
+    'URL': 'http://127.0.0.1:8000-'
     # 'URL': 'https://psu-server.duckdns.org'
 }
 
@@ -36,6 +38,19 @@ def save_server_config():
     function to save the current SERVER_CONFIG dict to the corresponding file
     """
     json_dump(SERVER_CONFIG, open(SC_FILE, 'w'))
+
+
+def timeout_after_error(attempt, error, *, multiplier=1):
+    """
+    function for handing over the error to the ui and handling the timeout
+    """
+    # check whether there is an attempt left
+    if attempt < MAX_ATTEMPTS:
+        handle_server_error(error, retry_timeout=attempt ** 3 * multiplier)
+        # wait before retry
+        sleep(attempt ** 3 * multiplier)
+    else:
+        handle_server_error(error)
 
 
 def make_request(uri, check_status_ok, context=None, session=None):
@@ -94,10 +109,8 @@ def register_at_server():
     session = requests.session()
     attempt = 0
 
-    while attempt < 5:
+    while attempt < MAX_ATTEMPTS:
 
-        # wait before retry
-        sleep(attempt ** 3 * 10)
         attempt += 1
 
         # generate rsa keys
@@ -105,9 +118,10 @@ def register_at_server():
 
         # try to make the request
         try:
-            res = session.post(SERVER_CONFIG['URL'] + '/psucontrol/register_new_psu', json={'public_rsa_key': public_key})
+            res = session.post(SERVER_CONFIG['URL'] + '/psucontrol/register_new_psu',
+                               data={'public_rsa_key': public_key}).json()
         except RequestException:
-            handle_server_error(SERVER_ERROR['0xC1'], retry_timeout=attempt ** 3 * 10)
+            timeout_after_error(attempt, SERVER_ERROR['0xC1'], multiplier=10)
             continue
 
         # check response for errors
@@ -118,8 +132,7 @@ def register_at_server():
             return True
 
         elif res['status'] == 'failed' and res['error_code'] == '0xD1':
-            # Database error on server side -> retry
-            handle_server_error(res, retry_timeout=attempt ** 3 * 10)
+            timeout_after_error(attempt, res)
 
         else:
             # some other wired error -> do not retry
