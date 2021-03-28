@@ -1,7 +1,10 @@
 from pathlib import Path
+import os
 from json import load as json_load, dump as json_dump
 from json.decoder import JSONDecodeError
+
 from time import sleep
+from datetime import datetime
 
 import requests
 from requests.exceptions import RequestException
@@ -52,6 +55,7 @@ def timeout_after_error(attempt, error, *, multiplier=1):
         sleep(attempt ** 3 * multiplier)
     else:
         handle_server_error(error)
+
 
 def generate_rsa_key():
     """
@@ -230,3 +234,23 @@ def post_data(temperature, air_humidity, ground_humidity, brightness, fill_level
             return False
 
     return False
+
+
+def enter_data(temperature, air_humidity, ground_humidity, brightness, fill_level):
+    """
+    function used to enter the measured data
+    the data will be stored in the data directory to keep it stored locally for backup purposes
+    additionally these files will be used to post the data
+    """
+
+    # create data directory
+    os.makedirs('data', exist_ok=True)
+
+    # write data entry
+    file = open('data/' + datetime.now().strftime('%Y-%m-%d') + '.log', 'a')
+    file.write(datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + ',' +
+               str(temperature) + ',' + str(air_humidity) + ',' + str(ground_humidity) + ',' +
+               str(brightness) + ',' + str(fill_level) + '\n')
+    file.close()
+
+    print(datetime.now().strftime('%Y-%m-%d_%H-%M-%H'))

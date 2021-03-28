@@ -134,3 +134,5 @@ dmypy.json
 
 # server config file
 server.config.json
+# data directory
+data/
