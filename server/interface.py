@@ -4,7 +4,7 @@ from json import load as json_load, dump as json_dump
 from json.decoder import JSONDecodeError
 
 from time import sleep
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import requests
 from requests.exceptions import RequestException
@@ -24,6 +24,7 @@ MAX_ATTEMPTS = 5
 # configuration of the config
 SC_FILE = Path("server.config.json")
 SERVER_CONFIG = {
+    'last_push': datetime.now().strftime('%Y-%m-%d_%H-%M-%S'),
     'URL': 'http://127.0.0.1:8000'
     # 'URL': 'https://psu-server.duckdns.org'
 }
@@ -236,7 +237,52 @@ def post_data(temperature, air_humidity, ground_humidity, brightness, fill_level
     return False
 
 
-def enter_data(temperature, air_humidity, ground_humidity, brightness, fill_level):
+def push_data():
+    """
+    function to go through the logs an send recent data to the server
+    """
+    current = last = datetime.strptime(SERVER_CONFIG['last_push'], '%Y-%m-%d_%H-%M-%S')
+
+    session = requests.session()
+
+    while datetime.now().date() - current.date() >= timedelta():
+
+        try:
+            file = open('data/' + current.strftime('%Y-%m-%d') + '.log', 'r')
+        except FileNotFoundError:
+            # no data exists -> skip
+            current += timedelta(days=1)
+            continue
+
+        # iterate through entries
+        for line in file.readlines():
+            data = line.split(';')
+
+            if len(data) != 6:
+                # non valid data
+                continue
+            if datetime.strptime(data[0], '%Y-%m-%d_%H-%M-%S') - last <= timedelta():
+                # data already pushed
+                continue
+
+            if post_data(data[1], data[2], data[3], data[4], data[5], data[0], session=session):
+                # worked out fine -> set last push to this timestamp
+                SERVER_CONFIG['last_push'] = data[0]
+            else:
+                # something wrong -> try later
+                save_server_config()
+                file.close()
+                return False
+
+        # close file and set current to the next day
+        file.close()
+        current += timedelta(days=1)
+
+    save_server_config()
+    return True
+
+
+def enter_data(temperature, air_humidity, ground_humidity, brightness, fill_level, *, timestamp=datetime.now()):
     """
     function used to enter the measured data
     the data will be stored in the data directory to keep it stored locally for backup purposes
@@ -247,10 +293,8 @@ def enter_data(temperature, air_humidity, ground_humidity, brightness, fill_leve
     os.makedirs('data', exist_ok=True)
 
     # write data entry
-    file = open('data/' + datetime.now().strftime('%Y-%m-%d') + '.log', 'a')
-    file.write(datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + ',' +
-               str(temperature) + ',' + str(air_humidity) + ',' + str(ground_humidity) + ',' +
-               str(brightness) + ',' + str(fill_level) + '\n')
+    file = open('data/' + timestamp.strftime('%Y-%m-%d') + '.log', 'a')
+    file.write(timestamp.strftime('%Y-%m-%d_%H-%M-%S') + ';' +
+               str(temperature) + ';' + str(air_humidity) + ';' + str(ground_humidity) + ';' +
+               str(brightness) + ';' + str(fill_level) + '\n')
     file.close()
-
-    print(datetime.now().strftime('%Y-%m-%d_%H-%M-%H'))
