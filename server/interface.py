@@ -222,7 +222,8 @@ def post_data(temperature, air_humidity, ground_humidity, brightness, fill_level
             continue
 
         # check response for errors
-        if res['status'] == 'ok':
+        if res['status'] == 'ok' or (res['status'] == 'failed' and res['error_code'] == '0xD4'):
+            # ok or measurement already exists
             return True
 
         elif res['status'] == 'failed' and (res['error_code'] == '0xD2' or res['error_code'] == '0xA2'):
