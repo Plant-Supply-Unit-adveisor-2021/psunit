@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import server.interface
 from time import sleep
 
@@ -90,8 +92,9 @@ def addFail(value, _min, _max, failure):
 
 
 def test():
-    # print(server.interface.register_at_server())
-    # print(server.interface.post_data(23, 50, 100, 99, 20, '2021-03-27_12-03-04'))
+    #print(server.interface.register_at_server())
+    # print(server.interface.post_data(23, 50, 100, 99, 20, '2021-03-28_03-03-08'))
     # server.interface.enter_data(23, 67, 100, 33, 100)
     # create_data(4, 6, 15)
-    server.interface.push_data()
+    # server.interface.push_data()
+    server.interface.post_image(Path('../test1.jpg'))

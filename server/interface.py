@@ -222,7 +222,8 @@ def post_data(temperature, air_humidity, ground_humidity, brightness, fill_level
             continue
 
         # check response for errors
-        if res['status'] == 'ok':
+        if res['status'] == 'ok' or (res['status'] == 'failed' and res['error_code'] == '0xD4'):
+            # ok or measurement already exists
             return True
 
         elif res['status'] == 'failed' and (res['error_code'] == '0xD2' or res['error_code'] == '0xA2'):
@@ -298,3 +299,58 @@ def enter_data(temperature, air_humidity, ground_humidity, brightness, fill_leve
                str(temperature) + ';' + str(air_humidity) + ';' + str(ground_humidity) + ';' +
                str(brightness) + ';' + str(fill_level) + '\n')
     file.close()
+
+
+def post_image(image, *, session=None):
+    """
+    function to post an image to the server
+    image needs to be an file object for now
+    returns success of operation
+    """
+    if session is None:
+        session = requests.session()
+
+    context = dict()
+
+    # add identification information and timestamp
+    context['identity_key'] = SERVER_CONFIG['identity_key']
+    context['timestamp'] = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+
+    # create dict with file
+    files = {'image': open(image, 'rb')}
+
+    attempt = 0
+
+    while attempt < MAX_ATTEMPTS:
+
+        attempt += 1
+
+        # get authentication information
+        context['signed_challenge'] = get_signed_challenge(session)
+        if context['signed_challenge'] is None:
+            # something with getting the challenge went wrong
+            return False
+
+        # try to make the request
+        try:
+            res = session.post(SERVER_CONFIG['URL'] + '/psucontrol/add_image',
+                               data=context, files=files).json()
+        except (RequestException, JSONDecodeError):
+            timeout_after_error(attempt, SERVER_ERROR['0xC1'], multiplier=10)
+            continue
+
+        # check response for errors
+        if res['status'] == 'ok' or (res['status'] == 'failed' and res['error_code'] == '0xD4'):
+            # ok or image already exists
+            return True
+
+        elif res['status'] == 'failed' and (res['error_code'] == '0xD2' or res['error_code'] == '0xA2'):
+            # database or authentication error -> retry
+            timeout_after_error(attempt, res)
+
+        else:
+            # some other wired error -> do not retry
+            handle_server_error(res)
+            return False
+
+    return False
