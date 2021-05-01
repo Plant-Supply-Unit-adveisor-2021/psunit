@@ -85,15 +85,26 @@ class OLED():
         
         
     def splash_screen(self):
+        """
+        function to show a splash screen on startup
+        """
         font = load_font(60)
         draw = self.get_canvas()
-        print(draw.textsize("PSU", font=font))
         draw.text((5,-2), "PSU", font=font, fill=255)
         self.show()
         sleep(3)
     
     
-    def show_message(self):
+    def show_menu(self, elements, *, active=0):
         draw = self.get_canvas()
-        draw.text((10,10), "WELCOME TO PSU", font=FONT, fill=255)
+        print(draw.textsize("PSU", font=FONT))
+        count = 0
+        for ele in elements:
+            print(ele)
+            if count == active:
+                y = 16*count
+                draw.line([0, y, 128, y], fill=255, width=1)
+                draw.line([0, y+15, 128, y+15], fill=255, width=1)
+            draw.text( (2, 16*count + 1) , ele, font=FONT, fill=255)
+            count += 1
         self.show()

@@ -28,7 +28,9 @@ class Control():
         """
         function to be called on userinterface startup
         """
-        self.oled.show_message()
+        for i in [0, 1, 2, 3, 4]:
+            self.oled.show_menu(["Hallo", "Moin", "Einstellungen vornehmen", "BACK", "WLAN Setup", "Sonstiges"], active=i)
+            sleep(3)
         sleep(60)
         
         
