@@ -14,9 +14,12 @@ class OLED():
     
     def __init__(self):
         
-        # Start Display connection
+        # variable to indicate if display is alive
+        self.alive = False
+        
+        # start Display connection
         self.disp = SSD1306_128_64(rst=None)
-        # Initalize screensize
+        # initalize screensize
         self.disp.begin()
         self.clear()
         # initalize image to draw
@@ -39,6 +42,7 @@ class OLED():
     def clear(self):
         self.disp.clear()
         self.disp.display()
+        self.alive = False
     
     
     def get_canvas(self, *, empty=True):
@@ -63,6 +67,7 @@ class OLED():
         # show image on screen
         self.disp.image(img)
         self.disp.display()
+        self.alive = True
         
         # reset timeout
         if self.timer.is_alive():

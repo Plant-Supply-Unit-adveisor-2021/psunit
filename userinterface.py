@@ -1,3 +1,4 @@
-from ui import control
+from ui.control import Control
 
-control.run()
+# Start UI on OLED
+Control()
