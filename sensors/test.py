@@ -6,7 +6,8 @@ from sensors.pump import pump_water
 from sensors.display import display_test
 
 def test():
-    print("Sensors Test")
+    print("Sensors Testing ...")
+    # take_picture()
     # pump_water(150)
     # display_test()
     ROTARY.set_clk(lambda : print("clk"))
