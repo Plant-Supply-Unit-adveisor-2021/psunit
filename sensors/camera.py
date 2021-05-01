@@ -13,7 +13,7 @@ def take_picture():
     # setup camera and stream
     stream = BytesIO()
     camera = PiCamera()
-    camera.resolution = (1280, 720)
+    camera.resolution = (1920, 1080)
     camera.start_preview(alpha=200)
     # sleep for 3 secs to let the camera adopt to environment
     sleep(3)

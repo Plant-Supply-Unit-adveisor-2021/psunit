@@ -1,5 +1,5 @@
 from sensors.camera import take_picture
 
 def test():
-    print("Sensors Test")
+    print("Sensors Testing ...")
     take_picture()
