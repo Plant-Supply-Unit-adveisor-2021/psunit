@@ -1,7 +1,7 @@
-from ui import control, interface
+from ui import interface
 
 
 def test():
-    print("Control Testing ...")
+    print("UI Testing ...")
     #control.control_test()
     interface.add_log_entry("HEY")

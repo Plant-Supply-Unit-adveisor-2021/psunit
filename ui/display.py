@@ -7,6 +7,14 @@ from Adafruit_SSD1306 import SSD1306_128_64
 from settings import OLED_TIMEOUT
 
 
+def load_font(size):
+    try:
+        return ImageFont.truetype('DejaVuSans.ttf', size)
+    except Exception:
+        return ImageFont.load_default()
+
+FONT = load_font(12)
+
 class OLED():
     """
     class to handle everything concerning the OLED display
@@ -19,15 +27,15 @@ class OLED():
         
         # start Display connection
         self.disp = SSD1306_128_64(rst=None)
-        # initalize screensize
         self.disp.begin()
-        self.clear()
-        # initalize image to draw
-        self.image = Image.new("1", (128, 64))
         
         # initalize timer to handle timout
         self.timer = Timer(OLED_TIMEOUT, lambda : self.clear())
         self.timer.start()
+        
+        # initalize image to draw and show splash screen
+        self.image = Image.new("1", (128, 64))
+        self.splash_screen()
         
         
     def __del__(self):
@@ -74,9 +82,18 @@ class OLED():
             self.timer.cancel()
         self.timer = Timer(OLED_TIMEOUT, lambda : self.clear())
         self.timer.start()
-    
-    
-    def display_test(self):
+        
+        
+    def splash_screen(self):
+        font = load_font(60)
         draw = self.get_canvas()
-        draw.rectangle((0, 0, 128, 64), outline=0, fill=255)
+        print(draw.textsize("PSU", font=font))
+        draw.text((5,-2), "PSU", font=font, fill=255)
+        self.show()
+        sleep(3)
+    
+    
+    def show_message(self):
+        draw = self.get_canvas()
+        draw.text((10,10), "WELCOME TO PSU", font=FONT, fill=255)
         self.show()

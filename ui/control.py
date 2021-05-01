@@ -28,14 +28,8 @@ class Control():
         """
         function to be called on userinterface startup
         """
-        draw = self.oled.get_canvas()
-        draw.rectangle((0, 0, 128, 64), outline=0, fill=255)
-        self.oled.show()
-        sleep(3)
-        draw = self.oled.get_canvas()
-        draw.rectangle((0, 0, 128, 64), outline=0, fill=255)
-        self.oled.show()
-        sleep(90)
+        self.oled.show_message()
+        sleep(60)
         
         
     def rot_clk(self):
