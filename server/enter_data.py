@@ -1,11 +1,8 @@
 import os
 from datetime import datetime
-from pathlib import Path
 
-# set data dir to psunit_data outside the project dir
-DATA_DIR = os.path.join(Path(__file__).parent.parent.parent.absolute(), 'psunit_data')
-MEASUREMENT_DIR = os.path.join(DATA_DIR, 'measurements')
-IMAGE_DIR = os.path.join(DATA_DIR, 'images')
+from settings import DATA_DIR, MEASUREMENT_DIR, IMAGE_DIR
+
 
 def enter_measurement(temperature, air_humidity, ground_humidity, brightness, fill_level, *, timestamp=datetime.now()):
     """

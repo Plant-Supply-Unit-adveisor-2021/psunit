@@ -3,22 +3,61 @@ from PIL import Image, ImageDraw, ImageFont
 
 from Adafruit_SSD1306 import SSD1306_128_64
 
-disp = SSD1306_128_64(rst=None)
 
-def init():
-    disp = SSD1306_128_64(rst=None)
-    disp.begin()
-    disp.clear()
-    disp.display()
-    print("HEY")
+class OLED():
+    """
+    class to handle everything concerning the OLED display
+    """
+    
+    def __init__(self):
+        
+        # Start Display connection
+        self.disp = SSD1306_128_64(rst=None)
+        # Initalize screensize
+        self.disp.begin()
+        self.clear()
+        
+        # initalize image to draw
+        self.image = Image.new("1", (128, 64))
+        
+        
+    def __del__(self):
+        """
+        clear display on program exit
+        """
+        self.clear()
+        
+        
+    def clear(self):
+        self.disp.clear()
+        self.disp.display()
+    
+    
+    def get_canvas(self, *, empty=True):
+        """
+        empty: True -> new image, False -> current canvas
+        returns drawing space of image
+        """
+        if empty:
+            self.image = Image.new('1', (128, 64))
+        return ImageDraw.Draw(self.image)
 
-def display_test():
-    init()
-    image = Image.new('1', (128, 64))
-    draw = ImageDraw.Draw(image)
-    draw.rectangle((0, 0, 128, 64), outline=0, fill=255)
-    disp.image(image)
-    disp.display()
-    sleep(5)
-    disp.clear()
-    disp.display()
+    
+    def show(self, *, img=None):
+        """
+        shows self.image unless img specified
+        """
+        # set img to show to self.image / store img in self.image
+        if img is None:
+            img = self.image
+        else:
+            self.image = img
+        # show image on screen
+        self.disp.image(img)
+        self.disp.display()
+    
+    
+    def display_test(self):
+        draw = self.get_canvas()
+        draw.rectangle((0, 0, 128, 64), outline=0, fill=255)
+        self.show()
