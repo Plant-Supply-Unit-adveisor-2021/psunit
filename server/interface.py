@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 
 from server.enter_data import DATA_DIR, MEASUREMENT_DIR, IMAGE_DIR
-from ui.error import handle_server_error
+from ui.interface import handle_server_error
 
 SERVER_ERROR = {
     '0xC1': {'error_code': '0xC1', 'error_message': 'Could not connect to server'}

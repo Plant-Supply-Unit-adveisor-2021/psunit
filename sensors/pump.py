@@ -1,7 +1,7 @@
 from gpiozero import DigitalOutputDevice
 from time import sleep
 
-from sensors import GPIO_PUMP
+from settings import GPIO_PUMP
 
 SECONDS_PER_MILLILITER = 0.0616
 
