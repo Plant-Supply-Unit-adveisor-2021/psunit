@@ -13,6 +13,7 @@ import base64
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 
+from server.enter_data import DATA_DIR
 from ui.error import handle_server_error
 
 SERVER_ERROR = {
@@ -25,8 +26,8 @@ MAX_ATTEMPTS = 5
 SC_FILE = Path("server.config.json")
 SERVER_CONFIG = {
     'last_push': datetime.now().strftime('%Y-%m-%d_%H-%M-%S'),
-    'URL': 'http://127.0.0.1:8000'
-    # 'URL': 'https://psu-server.duckdns.org'
+    # 'URL': 'http://127.0.0.1:8000'
+    'URL': 'https://psu-server.duckdns.org'
 }
 
 if SC_FILE.exists():
@@ -249,7 +250,7 @@ def push_data():
     while datetime.now().date() - current.date() >= timedelta():
 
         try:
-            file = open('data/' + current.strftime('%Y-%m-%d') + '.log', 'r')
+            file = open(DATA_DIR + 'measurements/' + current.strftime('%Y-%m-%d') + '.log', 'r')
         except FileNotFoundError:
             # no data exists -> skip
             current += timedelta(days=1)
@@ -281,24 +282,6 @@ def push_data():
 
     save_server_config()
     return True
-
-
-def enter_data(temperature, air_humidity, ground_humidity, brightness, fill_level, *, timestamp=datetime.now()):
-    """
-    function used to enter the measured data
-    the data will be stored in the data directory to keep it stored locally for backup purposes
-    additionally these files will be used to post the data
-    """
-
-    # create data directory
-    os.makedirs('data', exist_ok=True)
-
-    # write data entry
-    file = open('data/' + timestamp.strftime('%Y-%m-%d') + '.log', 'a')
-    file.write(timestamp.strftime('%Y-%m-%d_%H-%M-%S') + ';' +
-               str(temperature) + ';' + str(air_humidity) + ';' + str(ground_humidity) + ';' +
-               str(brightness) + ';' + str(fill_level) + '\n')
-    file.close()
 
 
 def post_image(image, *, session=None):
