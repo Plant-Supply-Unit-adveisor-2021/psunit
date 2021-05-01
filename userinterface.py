@@ -1,3 +1,3 @@
 from ui import control
 
-control.initalize()
+control.run()

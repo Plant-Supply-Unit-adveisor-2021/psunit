@@ -1,7 +1,10 @@
 from time import sleep
+from threading import Timer
 from PIL import Image, ImageDraw, ImageFont
 
 from Adafruit_SSD1306 import SSD1306_128_64
+
+from settings import OLED_TIMEOUT
 
 
 class OLED():
@@ -16,16 +19,21 @@ class OLED():
         # Initalize screensize
         self.disp.begin()
         self.clear()
-        
         # initalize image to draw
         self.image = Image.new("1", (128, 64))
+        
+        # initalize timer to handle timout
+        self.timer = Timer(OLED_TIMEOUT, lambda : self.clear())
+        self.timer.start()
         
         
     def __del__(self):
         """
-        clear display on program exit
+        clear display on program exit and shutdown timer
         """
         self.clear()
+        if self.timer.is_alive():
+            self.timer.cancel()
         
         
     def clear(self):
@@ -55,6 +63,12 @@ class OLED():
         # show image on screen
         self.disp.image(img)
         self.disp.display()
+        
+        # reset timeout
+        if self.timer.is_alive():
+            self.timer.cancel()
+        self.timer = Timer(OLED_TIMEOUT, lambda : self.clear())
+        self.timer.start()
     
     
     def display_test(self):

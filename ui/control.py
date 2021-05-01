@@ -5,7 +5,7 @@ from settings import GPIO_ROT_CLK, GPIO_ROT_DT, GPIO_ROT_SW
 from ui.rotary import Rotary
 from ui.display import OLED
 
-def initalize():
+def run():
     """
     function to be called on userinterface startup
     """
@@ -15,7 +15,13 @@ def initalize():
     rotary.set_push(lambda : print("push"))
     
     oled = OLED()
-    oled.display_test()
+    draw = oled.get_canvas()
+    draw.rectangle((0, 0, 128, 64), outline=0, fill=255)
+    oled.show()
+    sleep(3)
+    draw = oled.get_canvas()
+    draw.rectangle((0, 0, 128, 64), outline=0, fill=255)
+    oled.show()
     sleep(90)
 
 def control_test():

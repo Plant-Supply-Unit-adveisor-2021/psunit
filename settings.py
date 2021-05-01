@@ -15,6 +15,9 @@ GPIO_ROT_CLK = 27
 GPIO_ROT_DT = 22
 GPIO_ROT_SW = 17
 
+# OLED timeout in seconds
+OLED_TIMEOUT = 5
+
 # Setup of the data directory
 DATA_DIR = os.path.join(Path(__file__).parent.parent.absolute(), 'psunit_data')
 MEASUREMENT_DIR = os.path.join(DATA_DIR, 'measurements')
