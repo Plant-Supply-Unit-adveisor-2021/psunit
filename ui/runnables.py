@@ -1,4 +1,5 @@
-from ui.display import FONT
+from ui.display import FONT, S_FONT
+
 
 class Runnable:
     """
@@ -42,7 +43,7 @@ class Viewable(Runnable):
 
 class Menu(Viewable):
     """
-    class which holds all the necessary data for a menu
+    viewable to display a menu
     """
     
     def __init__(self, entries, runnables, *args, **kwargs):
@@ -104,5 +105,88 @@ class Menu(Viewable):
                 draw.line([0, y+15, 128, y+15], fill=255, width=1)
             draw.text( (2, 16*count + 1) , self.entries[i], font=FONT, fill=255)
             count += 1
+        self.control.oled.show()
+        
+        
+class MsgViewer(Viewable):
+    """
+    viewable to display a string message with BACK Button
+    """
+    
+    def __init__(self, message, back_view, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.back_view = back_view
+        self.lines = []
+        self.message = message
+        self.split_into_lines()
+        self.top = 0
+                
+    def split_into_lines(self):
+        """
+        funtion to split the text into lines
+        """
+        draw = self.control.oled.get_canvas()
+        line = ""
+        length = 0
+        for word in self.message.split(' '):
+            if line == "":
+                # special case line empty
+                nline = word
+                length = draw.textsize(nline, font=S_FONT)[0]
+            else:
+                nline = line + " " + word
+                length = draw.textsize(nline, font=S_FONT)[0]
+            print(length)
+            if length > 124:
+                if line == "":
+                    # special case line was empty -> word very long
+                    self.lines.append(nline)
+                    length = 0
+                else:
+                    self.lines.append(line)
+                    line = word
+                    length = draw.textsize(word, font=S_FONT)[0]
+            else:
+                line = nline
+        self.lines.append(line)
+    
+    def rot_push(self):
+        # go back to previous view
+        self.back_view.run()
+        
+    def rot_clk(self):
+        """"
+        function called on rotary turn clkwise
+        """
+        # shift message down if needed
+        if self.top + 4 <= len(self.lines):
+            self.top += 1
+        # show changes on OLED
+        self.show()
+        
+    def rot_cclk(self):
+        """
+        function called on rotary turn counter clkwise
+        """
+        # shift message up if needed
+        if self.top > 0:
+            self.top -= 1
+         # show changes on OLED
+        self.show()
+        
+    def show(self):
+        """
+        render message view
+        """
+        draw = self.control.oled.get_canvas()
+        # display BACK at the very top
+        draw.line([0, 0, 128, 0], fill=255, width=1)
+        draw.line([0, 15, 128, 15], fill=255, width=1)
+        draw.text( (2, 1) , "GO BACK", font=FONT, fill=255)
+        
+        y = 16
+        for i in range(self.top, min(len(self.lines), self.top+5)):
+            draw.text( (2, y) , self.lines[i], font=S_FONT, fill=255)
+            y += 10
         self.control.oled.show()
 

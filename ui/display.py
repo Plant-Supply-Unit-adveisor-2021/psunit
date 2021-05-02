@@ -14,6 +14,7 @@ def load_font(size):
         return ImageFont.load_default()
 
 FONT = load_font(12)
+S_FONT = load_font(10)
 
 class OLED():
     """
