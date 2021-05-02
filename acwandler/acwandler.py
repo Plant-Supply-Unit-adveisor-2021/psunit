@@ -23,5 +23,22 @@ class MCP3008:
 # initiate the ac wandler
 adc = MCP3008()
 
-def getValue(n): # n = Nummer des auszulesenden Channel
+# funktion für das Auslesen der rohen Daten der sensoren
+def rawValue(n): # n = Nummer des auszulesenden Channel
   return adc.read(channel = n)
+
+# bodenfeucht
+
+# grenzwerte
+AirValue = 616
+WaterValue = 335
+
+def getValue_bodenfeucht(n) :
+ raw = rawValue(n)
+ value_in_procent = 1 - ((raw - 335)/(AirValue - WaterValue))
+ if value_in_procent < 0:
+  value_in_procent = 0
+ elif value_in_procent > 1:
+  value_in_procent = 1
+ return 100 * value_in_procent
+ 
