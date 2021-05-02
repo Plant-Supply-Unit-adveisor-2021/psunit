@@ -10,6 +10,7 @@ sw = 27
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(clk, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(dt, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(sw, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 #initial states
 counter = 0
