@@ -63,6 +63,6 @@ GPIO.add_event_detect(clk, GPIO.FALLING, callback=clkClicked, bouncetime=300)
 GPIO.add_event_detect(dt, GPIO.FALLING, callback=dtClicked, bouncetime=300)
 GPIO.add_event_detect(sw, GPIO.FALLING, callback=swClicked, bouncetime=300)
  
-raw_input("Start monitoring input")
+
  
 GPIO.cleanup()
