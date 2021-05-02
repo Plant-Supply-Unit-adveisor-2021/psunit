@@ -40,11 +40,11 @@ def getBodenfeucht(n):
        value_in_procent = 0
     elif value_in_procent > 1:
        value_in_procent = 1
-    return 100 * value_in_procent
+    return 100 * value_in_procent #angabe in prozent
  
 #Fotowiederstand
 def getLight(n):
-    MaxWert = 1024
+    MaxWert = 1023
     Light = rawValue(n)
-    Procent = (Light/MaxWert)*100
-    return Procent
+    value = 4000 * (1 - (x / 1023)) #angabe in absoluten Werten
+    return value
