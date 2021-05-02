@@ -44,7 +44,6 @@ def measure_ground_humidity():
     for i in range(0, 5):
         raw += ADC.read(CH_GHUM)/5
         sleep(0.1)
-    print(raw)
     percentage = 1 - (raw - GHUM_WATER)/(GHUM_AIR - GHUM_WATER)
     return 100 * max(0, min(1, percentage))
  
@@ -63,7 +62,6 @@ def measure_light_level():
     for i in range(0, 5):
         raw += ADC.read(CH_LIGHT)/5
         sleep(0.1)
-    print(raw)
     percentage = (raw - LIGHT_MIN)/(LIGHT_MAX - LIGHT_MIN)
     return 100 * max(0, min(1, percentage))
  

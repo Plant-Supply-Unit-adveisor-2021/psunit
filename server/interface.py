@@ -251,7 +251,7 @@ def push_data():
     while datetime.now().date() - current.date() >= timedelta():
 
         try:
-            file = open(os.path.join(DATA_DIR, current.strftime('%Y-%m-%d') + '.log'), 'r')
+            file = open(os.path.join(MEASUREMENT_DIR, current.strftime('%Y-%m-%d') + '.log'), 'r')
         except FileNotFoundError:
             # no data exists -> skip
             current += timedelta(days=1)
