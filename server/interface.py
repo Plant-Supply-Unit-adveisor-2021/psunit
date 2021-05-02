@@ -1,4 +1,3 @@
-from pathlib import Path
 import os
 from json import load as json_load, dump as json_dump
 from json.decoder import JSONDecodeError
@@ -13,7 +12,8 @@ import base64
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 
-from ui.error import handle_server_error
+from server.enter_data import DATA_DIR, MEASUREMENT_DIR, IMAGE_DIR
+from ui.interface import handle_server_error
 
 SERVER_ERROR = {
     '0xC1': {'error_code': '0xC1', 'error_message': 'Could not connect to server'}
@@ -22,19 +22,21 @@ SERVER_ERROR = {
 MAX_ATTEMPTS = 5
 
 # configuration of the config
-SC_FILE = Path("server.config.json")
+SC_FILE = os.path.join(DATA_DIR, "server.config.json")
 SERVER_CONFIG = {
     'last_push': datetime.now().strftime('%Y-%m-%d_%H-%M-%S'),
-    'URL': 'http://127.0.0.1:8000'
-    # 'URL': 'https://psu-server.duckdns.org'
+    'last_image': datetime.now().strftime('%Y-%m-%d_%H-%M-%S'),
+    # 'URL': 'http://127.0.0.1:8000'
+    'URL': 'https://psu-server.duckdns.org'
 }
 
-if SC_FILE.exists():
+if os.path.exists(SC_FILE):
     # load server config
     SERVER_CONFIG = json_load(open(SC_FILE, 'r'))
 else:
     # create server config and initialize it
-    SC_FILE.touch()
+    os.makedirs(DATA_DIR, exist_ok=True)
+    os.mknod(SC_FILE)
     json_dump(SERVER_CONFIG, open(SC_FILE, 'w'))
 
 
@@ -249,7 +251,7 @@ def push_data():
     while datetime.now().date() - current.date() >= timedelta():
 
         try:
-            file = open('data/' + current.strftime('%Y-%m-%d') + '.log', 'r')
+            file = open(os.path.join(DATA_DIR, current.strftime('%Y-%m-%d') + '.log'), 'r')
         except FileNotFoundError:
             # no data exists -> skip
             current += timedelta(days=1)
@@ -269,6 +271,7 @@ def push_data():
             if post_data(data[1], data[2], data[3], data[4], data[5], data[0], session=session):
                 # worked out fine -> set last push to this timestamp
                 SERVER_CONFIG['last_push'] = data[0]
+                print("Pushed Measurement from {}".format(data[0]))
             else:
                 # something wrong -> try later
                 save_server_config()
@@ -283,25 +286,7 @@ def push_data():
     return True
 
 
-def enter_data(temperature, air_humidity, ground_humidity, brightness, fill_level, *, timestamp=datetime.now()):
-    """
-    function used to enter the measured data
-    the data will be stored in the data directory to keep it stored locally for backup purposes
-    additionally these files will be used to post the data
-    """
-
-    # create data directory
-    os.makedirs('data', exist_ok=True)
-
-    # write data entry
-    file = open('data/' + timestamp.strftime('%Y-%m-%d') + '.log', 'a')
-    file.write(timestamp.strftime('%Y-%m-%d_%H-%M-%S') + ';' +
-               str(temperature) + ';' + str(air_humidity) + ';' + str(ground_humidity) + ';' +
-               str(brightness) + ';' + str(fill_level) + '\n')
-    file.close()
-
-
-def post_image(image, *, session=None):
+def post_image(image, timestamp_str, *, session=None):
     """
     function to post an image to the server
     image needs to be an file object for now
@@ -314,7 +299,7 @@ def post_image(image, *, session=None):
 
     # add identification information and timestamp
     context['identity_key'] = SERVER_CONFIG['identity_key']
-    context['timestamp'] = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    context['timestamp'] = timestamp_str
 
     # create dict with file
     files = {'image': open(image, 'rb')}
@@ -354,3 +339,47 @@ def post_image(image, *, session=None):
             return False
 
     return False
+
+
+def push_images():
+    """
+    function to go through the images an send recent images to the server
+    """
+    current = last = datetime.strptime(SERVER_CONFIG['last_image'], '%Y-%m-%d_%H-%M-%S')
+    
+    session = requests.session()
+
+    while datetime.now().date() - current.date() >= timedelta():
+
+        cdir = os.path.join(IMAGE_DIR, current.strftime('%Y-%m-%d'))
+
+        if (not os.path.exists(cdir)) or (not os.path.isdir(cdir)):
+            # no images there to be pushed
+            current += timedelta(days=1)
+            continue
+
+        # iterate through images in folder
+        for img in os.listdir(cdir):
+            
+            imgpath = os.path.join(cdir, img)
+            if not imgpath.endswith('.jpeg'):
+                continue
+            
+            if datetime.strptime(img.split('.')[0], '%Y-%m-%d_%H-%M-%S') - last <= timedelta():
+                # image already pushed
+                continue
+
+            if post_image(imgpath, img.split('.')[0], session=session):
+                # worked out fine -> set last push to this timestamp
+                SERVER_CONFIG['last_image'] = img.split('.')[0]
+                print("Upload image {}".format(imgpath))
+            else:
+                # something wrong -> try later
+                save_server_config()
+                return False
+
+        # set current to the next day
+        current += timedelta(days=1)
+
+    save_server_config()
+    return True

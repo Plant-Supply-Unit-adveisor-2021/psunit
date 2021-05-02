@@ -2,3 +2,5 @@ cryptography>=3.4.6
 requests>=2.25.1
 picamera>=1.13
 Pillow>=8.2
+Adafruit-SSD1306>=1.6
+gpiozero>=1.6
