@@ -4,6 +4,7 @@ from time import sleep
 from settings import GPIO_ROT_CLK, GPIO_ROT_DT, GPIO_ROT_SW
 from ui.rotary import Rotary
 from ui.display import OLED
+from ui.viewable import Menu
 
 class Control():
     """
@@ -21,6 +22,8 @@ class Control():
         # setup oled display
         self.oled = OLED()
         
+        self.view = None
+        
         self.run()
     
     
@@ -28,9 +31,7 @@ class Control():
         """
         function to be called on userinterface startup
         """
-        for i in [0, 1, 2, 3, 4]:
-            self.oled.show_menu(["Hallo", "Moin", "Einstellungen vornehmen", "BACK", "WLAN Setup", "Sonstiges"], active=i)
-            sleep(3)
+        self.view = Menu(["Hallo", "Moin", "Einstellungen vornehmen", "BACK", "WLAN Setup", "Sonstiges"], self)
         sleep(60)
         
         
@@ -41,7 +42,8 @@ class Control():
         print("ROT: CLK")
         if not self.oled.alive:
             self.oled.show()
-
+        if not self.view is None:
+            self.view.rot_clk()
 
     def rot_cclk(self):
         """
@@ -51,6 +53,8 @@ class Control():
         if not self.oled.alive:
             self.oled.show()
             return
+        if not self.view is None:
+            self.view.rot_cclk()
             
             
     def rot_push(self):
@@ -61,3 +65,5 @@ class Control():
         if not self.oled.alive:
             self.oled.show()
             return
+        if not self.view is None:
+            self.view.rot_push()
