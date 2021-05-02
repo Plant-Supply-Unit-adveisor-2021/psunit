@@ -4,7 +4,7 @@ from time import sleep
 from settings import GPIO_ROT_CLK, GPIO_ROT_DT, GPIO_ROT_SW
 from ui.rotary import Rotary
 from ui.display import OLED
-from ui.viewable import Menu
+from ui.menus import MenuTree
 
 class Control():
     """
@@ -23,16 +23,20 @@ class Control():
         self.oled = OLED()
         
         self.view = None
-        
+        self.menu_tree = MenuTree(self)
         self.run()
-    
     
     def run(self):
         """
         function to be called on userinterface startup
         """
-        self.view = Menu(["Hallo", "Moin", "Einstellungen vornehmen", "BACK", "WLAN Setup", "Sonstiges"], self)
         sleep(60)
+        
+    def set_view(self, view):
+        """
+        called bzy viewables to connect to input
+        """
+        self.view = view
         
         
     def rot_clk(self):
