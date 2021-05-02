@@ -25,7 +25,7 @@ adc = MCP3008()
 
 # funktion für das Auslesen der rohen Daten der sensoren
 def rawValue(n): # n = Nummer des auszulesenden Channel
-  return adc.read(channel = n)
+    return adc.read(channel = n)
 
 # bodenfeucht
 
@@ -34,11 +34,11 @@ AirValue = 616
 WaterValue = 335
 
 def getValue_bodenfeucht(n) :
- raw = rawValue(n)
- value_in_procent = 1 - ((raw - WaterValue)/(AirValue - WaterValue))
- if value_in_procent < 0:
-  value_in_procent = 0
- elif value_in_procent > 1:
-  value_in_procent = 1
- return 100 * value_in_procent
+    raw = rawValue(n)
+    value_in_procent = 1 - ((raw - WaterValue)/(AirValue - WaterValue))
+    if value_in_procent < 0:
+       value_in_procent = 0
+    elif value_in_procent > 1:
+       value_in_procent = 1
+    return 100 * value_in_procent
  
