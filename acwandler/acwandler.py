@@ -33,7 +33,7 @@ def rawValue(n): # n = Nummer des auszulesenden Channel
 AirValue = 616
 WaterValue = 335
 
-def getValue_bodenfeucht(n) :
+def getBodenfeucht(n):
     raw = rawValue(n)
     value_in_procent = 1 - ((raw - WaterValue)/(AirValue - WaterValue))
     if value_in_procent < 0:
@@ -42,3 +42,9 @@ def getValue_bodenfeucht(n) :
        value_in_procent = 1
     return 100 * value_in_procent
  
+#Fotowiederstand
+def getLight(n):
+    MaxWert = 1024
+    Light = rawValue(n)
+    Procent = (Light/MaxWert)*100
+    return Procent
