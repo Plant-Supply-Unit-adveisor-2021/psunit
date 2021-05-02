@@ -35,7 +35,7 @@ WaterValue = 335
 
 def getValue_bodenfeucht(n) :
  raw = rawValue(n)
- value_in_procent = 1 - ((raw - 335)/(AirValue - WaterValue))
+ value_in_procent = 1 - ((raw - WaterValue)/(AirValue - WaterValue))
  if value_in_procent < 0:
   value_in_procent = 0
  elif value_in_procent > 1:
