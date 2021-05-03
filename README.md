@@ -10,3 +10,6 @@ Going on you should clone this repository and run the following command inside t
     pip3 install -r requirements.txt
 
 Afterwards you should configure your crontab file to call the measure.py and the push.py on a regualar bases. In order to function properly the psuserver needs to be running on the other side.
+
+# credits 
+Thanks to @tatobari whos hx711 libary we are using. https://github.com/tatobari/hx711py
