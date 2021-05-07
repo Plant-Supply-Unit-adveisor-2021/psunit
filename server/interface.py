@@ -26,6 +26,7 @@ SC_FILE = os.path.join(DATA_DIR, "server.config.json")
 SERVER_CONFIG = {
     'last_push': datetime.now().strftime('%Y-%m-%d_%H-%M-%S'),
     'last_image': datetime.now().strftime('%Y-%m-%d_%H-%M-%S'),
+    'last_watering_task_id': '-1',
     # 'URL': 'http://127.0.0.1:8000'
     'URL': 'https://psu-server.duckdns.org'
 }
@@ -383,3 +384,101 @@ def push_images():
 
     save_server_config()
     return True
+
+
+def get_watering_task():
+    """
+    returns tuple of (task_id, amount of water)
+    """
+    session = requests.session()
+    attempt = 0
+
+    context = dict()
+    context['identity_key'] = SERVER_CONFIG['identity_key']
+
+    while attempt < MAX_ATTEMPTS:
+
+        attempt += 1
+
+        # get signed challenge
+        context['signed_challenge'] = get_signed_challenge(session)
+        if context['signed_challenge'] is None:
+            # something with getting the challenge went wrong
+            return (-10, -10)
+
+        # try to make the request
+        try:
+            res = session.post(SERVER_CONFIG['URL'] + '/psucontrol/get_watering_task',
+                               data=context).json()
+        except (RequestException, JSONDecodeError):
+            timeout_after_error(attempt, SERVER_ERROR['0xC1'], multiplier=10)
+            continue
+
+        # check response for errors
+        if res['status'] == 'ok':
+            if int(SERVER_CONFIG['last_watering_task_id']) >= int(res['watering_task_id']):
+                # got already executed id -> try mark as executed and return NO watering task
+                mark_watering_task_executed(int(res['watering_task_id']))
+                return (-1, -1)
+            return (int(res['watering_task_id']), int(res['watering_task_amount']))
+
+        elif res['status'] == 'failed' and res['error_code'] == '0xW1':
+            # no watering task available
+            return (-1, -1)
+
+        elif res['status'] == 'failed':
+            timeout_after_error(attempt, res)
+
+        else:
+            # some other wired error -> do not retry
+            handle_server_error(res)
+            return (-10, -10)
+
+    return (-10, -10)
+
+
+def mark_watering_task_executed(id):
+    """
+    needs to be called to tell the server that the PSU executed the task
+    param: id pf the watering task executed
+    returns success of operation
+    """
+
+    # write id to SERVER_CONFIG to prevent double execution
+    SERVER_CONFIG['last_watering_task_id'] = str(id)
+    save_server_config()
+
+    session = requests.session()
+    attempt = 0
+
+    context = dict()
+    context['identity_key'] = SERVER_CONFIG['identity_key']
+    context['watering_task_id'] = str(id)
+
+    while attempt < MAX_ATTEMPTS:
+
+        attempt += 1
+
+        # get signed challenge
+        context['signed_challenge'] = get_signed_challenge(session)
+        if context['signed_challenge'] is None:
+            # something with getting the challenge went wrong
+            return False
+
+        # try to make the request
+        try:
+            res = session.post(SERVER_CONFIG['URL'] + '/psucontrol/mark_watering_task_executed',
+                               data=context).json()
+        except (RequestException, JSONDecodeError):
+            timeout_after_error(attempt, SERVER_ERROR['0xC1'], multiplier=10)
+            continue
+
+        # check response for errors
+        if res['status'] == 'ok':
+            return True
+        else:
+            # some other wired error -> do not retry
+            handle_server_error(res)
+            return False
+
+    return False
