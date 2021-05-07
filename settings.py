@@ -26,6 +26,7 @@ GPIO_ROT_DT = 22
 GPIO_ROT_SW = 17
 
 # OLED variables in seconds
+# connect to I2C interface
 OLED_TIMEOUT = 5
 OLED_SPLASH_SCREEN = 1
 
@@ -36,12 +37,17 @@ IMAGE_DIR = os.path.join(DATA_DIR, 'images')
 UI_LOG_DIR = os.path.join(DATA_DIR, 'ui_log')
 
 # configuration of the measure config
+# the measure config holds all settings which might be changed individually
 MC_FILE = os.path.join(DATA_DIR, "measure.config.json")
 MEASURE_CONFIG = {
     'DHT22': True,
     'HX711': True,
     'G_HUM': True,
+    'G_HUM_MINV': 900, # value of ADC to be considered 0% humidity
+    'G_HUM_MAXV': 450, # value of ADC to be considered 100% humidity
     'LDR': True,
+    'LDR_MINV': 42,  # value of ADC to be considered 0% light
+    'LDR_MAXV': 920, # value of ADC to be considered 100% light
     'PUMP': True,
     'ROTOARY_ENC': True,
     'OLED': True,

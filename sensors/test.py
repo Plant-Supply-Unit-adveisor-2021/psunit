@@ -11,7 +11,8 @@ def test():
     # take_picture()
     pump_water(150)
     temp, humd = measure_temp_ahum()
-    print("temp: {0:.2f} humid: {1:.2f}".format(temp, humd))
-    # print("G-Hum: {}".format(measure_ground_humidity()))
-    # print("Light: {}".format(measure_light_level()))
+    if not temp is None and not humd is None: 
+        print("temp: {0:.2f} humid: {1:.2f}".format(temp, humd))
+    print("G-Hum: {}".format(measure_ground_humidity()))
+    print("Light: {}".format(measure_light_level()))
     # print(measure_filllevel())
