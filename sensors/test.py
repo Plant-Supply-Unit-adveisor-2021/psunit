@@ -8,7 +8,7 @@ from sensors.filllevel import measure_filllevel
 
 def test():
     print("Sensors Testing ...")
-    # take_picture()
+    take_picture()
     pump_water(150)
     temp, humd = measure_temp_ahum()
     if not temp is None and not humd is None: 
