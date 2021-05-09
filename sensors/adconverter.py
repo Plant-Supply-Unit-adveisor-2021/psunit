@@ -49,7 +49,7 @@ def measure_ground_humidity():
         ADC.close()
         
         # calculate result and return it
-        percentage = abs((raw - MEASURE_CONFIG['G_HUM_MINV'])/(MEASURE_CONFIG['G_HUM_MINV'] - MEASURE_CONFIG['G_HUM_MAXV']))
+        percentage = (raw - MEASURE_CONFIG['G_HUM_MINV'])/(MEASURE_CONFIG['G_HUM_MAXV'] - MEASURE_CONFIG['G_HUM_MINV'])
         return 100 * max(0, min(1, percentage))
     except Exception as e:
         print('MCP3008 could not measure grund humidity due to an exception')
@@ -86,7 +86,7 @@ def measure_light_level():
         ADC.close()
         
         # calculate result and return it
-        percentage = abs((raw - MEASURE_CONFIG['LDR_MINV'])/(MEASURE_CONFIG['LDR_MINV'] - MEASURE_CONFIG['LDR_MAXV']))
+        percentage = (raw - MEASURE_CONFIG['LDR_MINV'])/(MEASURE_CONFIG['LDR_MAXV'] - MEASURE_CONFIG['LDR_MINV'])
         return 100 * max(0, min(1, percentage))
     except Exception as e:
         print('MCP3008 could not measure light level due to an exception')
