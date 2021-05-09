@@ -1,7 +1,7 @@
 from signal import pause
 from time import sleep
 
-from settings import GPIO_ROT_CLK, GPIO_ROT_DT, GPIO_ROT_SW
+from settings import MEASURE_CONFIG
 from ui.rotary import Rotary
 from ui.display import OLED
 from ui.menus import MenuTree
@@ -14,7 +14,9 @@ class Control():
     def __init__(self):
         
         # setup rotary encoder
-        self.rotary = Rotary(GPIO_ROT_CLK, GPIO_ROT_DT, GPIO_ROT_SW)
+        self.rotary = Rotary(MEASURE_CONFIG['GPIO_ROT_CLK'],
+                             MEASURE_CONFIG['GPIO_ROT_DT'],
+                             MEASURE_CONFIG['GPIO_ROT_SW'])
         self.rotary.set_clk(lambda : self.rot_clk())
         self.rotary.set_cclk(lambda : self.rot_cclk())
         self.rotary.set_push(lambda : self.rot_push())

@@ -8,27 +8,8 @@ from json import dump as json_dump, load as json_load
 
 """
 
-# Pump
-GPIO_PUMP = 21
-
-# DHT22
-GPIO_DHT22 = 25
-
-# AD-Converter
-# connect ADC to SPI of Raspberry and CE0
-# channels of analog sources
-CH_GHUM = 6
-CH_LIGHT = 7
-
-# Rotary Encoder
-GPIO_ROT_CLK = 27
-GPIO_ROT_DT = 22
-GPIO_ROT_SW = 17
-
 # OLED variables in seconds
 # connect to I2C interface
-OLED_TIMEOUT = 5
-OLED_SPLASH_SCREEN = 1
 
 # Setup of the data directory
 DATA_DIR = os.path.join(Path(__file__).parent.parent.absolute(), 'psunit_data')
@@ -40,17 +21,34 @@ UI_LOG_DIR = os.path.join(DATA_DIR, 'ui_log')
 # the measure config holds all settings which might be changed individually
 MC_FILE = os.path.join(DATA_DIR, "measure.config.json")
 MEASURE_CONFIG = {
+    # DHT22
     'DHT22': True,
+    'GPIO_DHT22': 25,
     'HX711': True,
+    # AD-Converter
+    # connect ADC to SPI of Raspberry and CE0
+    # channels of analog sources (ground humidity and ldr)
+    'CH_GHUM': 6,
+    'CH_LIGHT': 7,
     'G_HUM': True,
     'G_HUM_MINV': 900, # value of ADC to be considered 0% humidity
     'G_HUM_MAXV': 450, # value of ADC to be considered 100% humidity
     'LDR': True,
     'LDR_MINV': 42,  # value of ADC to be considered 0% light
     'LDR_MAXV': 920, # value of ADC to be considered 100% light
+    # Pump
     'PUMP': True,
-    'ROTOARY_ENC': True,
+    'GPIO_PUMP': 21,
+    # Rotary Encoder
+    'ROTARY_ENC': True,
+    'GPIO_ROT_CLK': 27,
+    'GPIO_ROT_DT': 22,
+    'GPIO_ROT_SW': 17,
+    # OLED Display at I2C of Raspi
     'OLED': True,
+    'OLED_TIMEOUT': 5,
+    'OLED_SPLASH_SCREEN': 1,
+    # Camera at camera connector
     'CAMERA': True,
 }
 

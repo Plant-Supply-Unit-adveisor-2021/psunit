@@ -1,5 +1,5 @@
 from Adafruit_DHT import DHT22, read_retry
-from settings import MEASURE_CONFIG, GPIO_DHT22
+from settings import MEASURE_CONFIG
 
 def measure_temp_ahum():
     """
@@ -12,7 +12,7 @@ def measure_temp_ahum():
             print('DHT22 not activated in measure.config.json')
             return (None, None)
     
-        humidity, temperature = read_retry(DHT22, GPIO_DHT22)
+        humidity, temperature = read_retry(DHT22, MEASURE_CONFIG['GPIO_DHT22'])
 
         if humidity is not None and temperature is not None:
             return (temperature, humidity)

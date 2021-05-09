@@ -1,7 +1,7 @@
 from gpiozero import DigitalOutputDevice
 from time import sleep
 
-from settings import MEASURE_CONFIG, GPIO_PUMP
+from settings import MEASURE_CONFIG
 
 SECONDS_PER_MILLILITER = 0.0616
 
@@ -16,7 +16,7 @@ def pump_water(amount):
         return
     
     print('PUMP: Watering plant with {}ml of water.'.format(amount))
-    pump = DigitalOutputDevice(GPIO_PUMP)
+    pump = DigitalOutputDevice(MEASURE_CONFIG['GPIO_PUMP'])
     pump.on()
     sleep(amount * SECONDS_PER_MILLILITER)
     pump.off()

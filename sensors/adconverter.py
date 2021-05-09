@@ -1,7 +1,7 @@
 from spidev import SpiDev
 from time import sleep
 
-from settings import MEASURE_CONFIG, CH_GHUM, CH_LIGHT
+from settings import MEASURE_CONFIG
  
 class MCP3008:
     """
@@ -42,7 +42,7 @@ def measure_ground_humidity():
         # make 5 measurements and take arithmetric middle
         raw = 0
         for i in range(0, 5):
-            raw += ADC.read(CH_GHUM)/5
+            raw += ADC.read(MEASURE_CONFIG['CH_GHUM'])/5
             sleep(0.1)
             
         # close ADC interface
@@ -79,7 +79,7 @@ def measure_light_level():
         # make 5 measurements and take arithmetric middle
         raw = 0
         for i in range(0, 5):
-            raw += ADC.read(CH_LIGHT)/5
+            raw += ADC.read(MEASURE_CONFIG['CH_LIGHT'])/5
             sleep(0.1)
             
         # close ADC interface

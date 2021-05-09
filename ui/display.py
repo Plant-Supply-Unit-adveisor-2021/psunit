@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from Adafruit_SSD1306 import SSD1306_128_64
 
-from settings import OLED_TIMEOUT, OLED_SPLASH_SCREEN
+from settings import MEASURE_CONFIG
 
 
 def load_font(size):
@@ -31,7 +31,7 @@ class OLED():
         self.disp.begin()
         
         # initalize timer to handle timout
-        self.timer = Timer(OLED_TIMEOUT, lambda : self.clear())
+        self.timer = Timer(MEASURE_CONFIG['OLED_TIMEOUT'], lambda : self.clear())
         self.timer.start()
         
         # initalize image to draw and show splash screen
@@ -81,7 +81,7 @@ class OLED():
         # reset timeout
         if self.timer.is_alive():
             self.timer.cancel()
-        self.timer = Timer(OLED_TIMEOUT, lambda : self.clear())
+        self.timer = Timer(MEASURE_CONFIG['OLED_TIMEOUT'], lambda : self.clear())
         self.timer.start()
         
         
@@ -93,4 +93,4 @@ class OLED():
         draw = self.get_canvas()
         draw.text((5,-2), "PSU", font=font, fill=255)
         self.show()
-        sleep(OLED_SPLASH_SCREEN)
+        sleep(MEASURE_CONFIG['OLED_SPLASH_SCREEN'])
