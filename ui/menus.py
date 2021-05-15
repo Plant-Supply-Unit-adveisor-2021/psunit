@@ -1,4 +1,5 @@
 from ui.runnables import Menu, MsgViewer
+import subprocess
 
 class MenuTree:
     """
@@ -7,13 +8,8 @@ class MenuTree:
     def __init__(self, control):
         self.main = MainMenu([], control)
         self.log = LogMenu([None, None, None, self.main], control)
-        self.msg = MsgViewer("h h h h h h h h h h h h h h h h h h h h h "
-                             "Hallo, das hier ist ein Testtext und dabei"
-                             "ein ganz schoen langer Text. Diese Plant "
-                             "Supply Unit kann jetzt auch schon Text. "
-                             "Grillkohleanzuenderkerzenhalter fuer dich",
-                             self.main, control)
-        self.main.runnables = [self.msg, self.log]
+        self.status = StatusMsg(self.main, control)
+        self.main.runnables = [self.status, self.log]
         
         # run main menu
         self.main.run()
@@ -37,3 +33,55 @@ class LogMenu(Menu):
         # Do NOT forget to hand over control
         entries = ["Data Measurements", "Errors", "Info", "BACK"]
         super().__init__(entries, runnables, *args, **kwargs)
+
+
+def cmd_output(command):
+    # calls the command and returns its output as String
+    p = subprocess.run(command, shell=True, capture_output=True, text=True)
+    return p.stdout
+
+
+class StatusMsg(MsgViewer):
+    """
+    class to build a message view with core status variables
+    """
+    def __init__(self, *args, **kwargs):
+        # Hand over no mesage for now
+        super().__init__('', *args, **kwargs)
+        
+    def run(self):
+        """
+        called to show the stats
+        """
+        msg = "Current IP-Address:\n"
+        ip = cmd_output("hostname -I").split(" ")[0]
+        if len(ip) >= 7:
+            # internet connection up
+            msg += ip + "\n"
+            # test ping to psuserver
+            msg += "Current PING to server:\n"
+            ping = cmd_output("ping -c 1 psu-server.duckdns.org | grep avg").split('/')
+            if len(ping) == 7:
+                msg += '{} {}'.format(ping[4], ping[6].split(' ')[1])
+        else:
+            msg += "No Internet Connection\n"
+        
+        msg += "Current SD-Card Usage\n"
+        # get the current storage level
+        storage = cmd_output("df -h | grep /dev/root").split(' ')
+        i = 1
+        x = 1
+        while storage[1] == "" or storage[2]== "":
+            if storage[x] == '':
+                storage[x] = storage[i+1]
+                i += 1
+            else:
+                x += 1
+                i += 1
+        msg += '{1} of {0}\n'.format(storage[1], storage[2])
+        
+        self.message = msg
+        self.top = 0
+        self.split_into_lines()
+        super().run()
+        

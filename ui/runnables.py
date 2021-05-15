@@ -127,28 +127,38 @@ class MsgViewer(Viewable):
         """
         draw = self.control.oled.get_canvas()
         line = ""
+        self.lines = []
         length = 0
+        
+        # make sure newlines will be recognized
+        self.message = self.message.replace('\n', ' \n ')
+        # build lines word by word
         for word in self.message.split(' '):
-            if line == "":
+            if word == '\n':
+                # newline -> jump to newline
+                self.lines.append(line)
+                line = ""
+                continue
+            elif line == "":
                 # special case line empty
                 nline = word
                 length = draw.textsize(nline, font=S_FONT)[0]
             else:
                 nline = line + " " + word
                 length = draw.textsize(nline, font=S_FONT)[0]
-            print(length)
+                
+            # check whether a newline is needed
             if length > 124:
                 if line == "":
                     # special case line was empty -> word very long
                     self.lines.append(nline)
-                    length = 0
                 else:
                     self.lines.append(line)
                     line = word
-                    length = draw.textsize(word, font=S_FONT)[0]
             else:
                 line = nline
         self.lines.append(line)
+    
     
     def rot_push(self):
         # go back to previous view
