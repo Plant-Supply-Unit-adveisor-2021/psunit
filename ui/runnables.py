@@ -1,4 +1,5 @@
 from ui.display import FONT, S_FONT
+from traceback import format_exc
 
 
 class Runnable:
@@ -125,39 +126,44 @@ class MsgViewer(Viewable):
         """
         funtion to split the text into lines
         """
-        draw = self.control.oled.get_canvas()
-        line = ""
-        self.lines = []
-        length = 0
-        
-        # make sure newlines will be recognized
-        self.message = self.message.replace('\n', ' \n ')
-        # build lines word by word
-        for word in self.message.split(' '):
-            if word == '\n':
-                # newline -> jump to newline
-                self.lines.append(line)
-                line = ""
-                continue
-            elif line == "":
-                # special case line empty
-                nline = word
-                length = draw.textsize(nline, font=S_FONT)[0]
-            else:
-                nline = line + " " + word
-                length = draw.textsize(nline, font=S_FONT)[0]
-                
-            # check whether a newline is needed
-            if length > 124:
-                if line == "":
-                    # special case line was empty -> word very long
-                    self.lines.append(nline)
-                else:
+        try:
+            draw = self.control.oled.get_canvas()
+            line = ""
+            self.lines = []
+            length = 0
+            
+            # make sure newlines will be recognized
+            self.message = self.message.replace('\n', ' \n ')
+            # build lines word by word
+            for word in self.message.split(' '):
+                if word == '\n':
+                    # newline -> jump to newline
                     self.lines.append(line)
-                    line = word
-            else:
-                line = nline
-        self.lines.append(line)
+                    line = ""
+                    continue
+                elif line == "":
+                    # special case line empty
+                    nline = word
+                    length = draw.textsize(nline, font=S_FONT)[0]
+                else:
+                    nline = line + " " + word
+                    length = draw.textsize(nline, font=S_FONT)[0]
+                    
+                # check whether a newline is needed
+                if length > 124:
+                    if line == "":
+                        # special case line was empty -> word very long
+                        self.lines.append(nline)
+                    else:
+                        self.lines.append(line)
+                        line = word
+                else:
+                    line = nline
+            self.lines.append(line)
+        except Exception:
+            print(format_exc())
+            self.message = 'An error occured during spliting the message into lines.\n'
+            self.split_into_lines()
     
     
     def rot_push(self):
@@ -200,3 +206,29 @@ class MsgViewer(Viewable):
             y += 10
         self.control.oled.show()
 
+
+class LogFileViewer(MsgViewer):
+    """
+    class to show the content of a log file
+    """
+    def __init__(self, path, *args, **kwargs):
+        # Do NOT forget to hand over back_view and control
+        # hand over no message for now
+        super().__init__('', *args, **kwargs)
+        self.path = path
+        
+    def run(self):
+        """
+        called on starting the view -> get latest log data
+        """
+        try:
+            # open file
+            with open(self.path, 'r') as file:
+                self.message = file.read()
+        except Exception:
+            print(format_exc())
+            self.message = 'An error occured during loading log.\n'
+        
+        self.top = 0
+        self.split_into_lines()
+        super().run()

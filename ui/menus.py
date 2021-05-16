@@ -1,6 +1,9 @@
-from ui.runnables import Menu, MsgViewer
+from ui.runnables import Menu, MsgViewer, LogFileViewer
 from server.interface import SERVER_CONFIG
+from settings import DATA_DIR
 import subprocess
+from os.path import join
+from traceback import format_exc
 
 class MenuTree:
     """
@@ -8,7 +11,7 @@ class MenuTree:
     """
     def __init__(self, control):
         self.main = MainMenu([], control)
-        self.log = LogMenu([None, None, None, self.main], control)
+        self.log = LogMenu(self.main, control)
         self.status = StatusMsg(self.main, control)
         self.main.runnables = [self.status, self.log]
         
@@ -30,9 +33,14 @@ class LogMenu(Menu):
     """
     class to build the log menu
     """
-    def __init__(self, runnables, *args, **kwargs):
+    def __init__(self, back_view, *args, **kwargs):
         # Do NOT forget to hand over control
-        entries = ["Data Measurements", "Errors", "Info", "BACK"]
+        entries = ["measure.log", "watering.log", "push.log", "BACK"]
+        runnables = []
+        runnables.append(LogFileViewer(join(DATA_DIR, 'measure.log'), self,*args, **kwargs))
+        runnables.append(LogFileViewer(join(DATA_DIR, 'watering.log'), self, *args, **kwargs))
+        runnables.append(LogFileViewer(join(DATA_DIR, 'push.log'), self, *args, **kwargs))
+        runnables.append(back_view)
         super().__init__(entries, runnables, *args, **kwargs)
 
 
@@ -47,6 +55,7 @@ class StatusMsg(MsgViewer):
     class to build a message view with core status variables
     """
     def __init__(self, *args, **kwargs):
+        # Do NOT forget to hand over back_view and control
         # Hand over no mesage for now
         super().__init__('', *args, **kwargs)
         
@@ -70,8 +79,8 @@ class StatusMsg(MsgViewer):
                     msg += "No Server Connection\n"
             else:
                 msg += "No Network Connection\n"
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format_exc())
             msg += "Could not gather information\n"
             
         msg += "Current SD-Card Usage:\n"
@@ -88,8 +97,8 @@ class StatusMsg(MsgViewer):
                     x += 1
                     i += 1
             msg += '{1} of {0}\n'.format(storage[1], storage[2])
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(format_exc())
             msg += "Could not gather information\n"
 
         self.message = msg
