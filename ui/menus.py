@@ -1,4 +1,5 @@
 from ui.runnables import Menu, MsgViewer
+from server.interface import SERVER_CONFIG
 import subprocess
 
 class MenuTree:
@@ -54,32 +55,43 @@ class StatusMsg(MsgViewer):
         called to show the stats
         """
         msg = "Current IP-Address:\n"
-        ip = cmd_output("hostname -I").split(" ")[0]
-        if len(ip) >= 7:
-            # internet connection up
-            msg += ip + "\n"
-            # test ping to psuserver
-            msg += "Current PING to server:\n"
-            ping = cmd_output("ping -c 1 psu-server.duckdns.org | grep avg").split('/')
-            if len(ping) == 7:
-                msg += '{} {}'.format(ping[4], ping[6].split(' ')[1])
-        else:
-            msg += "No Internet Connection\n"
-        
-        msg += "Current SD-Card Usage\n"
-        # get the current storage level
-        storage = cmd_output("df -h | grep /dev/root").split(' ')
-        i = 1
-        x = 1
-        while storage[1] == "" or storage[2]== "":
-            if storage[x] == '':
-                storage[x] = storage[i+1]
-                i += 1
+        try:
+            ip = cmd_output("hostname -I").split(" ")[0]
+            if len(ip) >= 7:
+                # network connection up
+                msg += ip + "\n"
+                # test ping to psuserver
+                msg += "Current PING to server:\n"
+                ping = cmd_output("ping -c 1 " + SERVER_CONFIG['URL'].split('//')[1] + " | grep avg").split('/')
+                
+                if len(ping) == 7:
+                    msg += '{} {}'.format(ping[4], ping[6].split(' ')[1])
+                else:
+                    msg += "No Server Connection\n"
             else:
-                x += 1
-                i += 1
-        msg += '{1} of {0}\n'.format(storage[1], storage[2])
-        
+                msg += "No Network Connection\n"
+        except Exception as e:
+            print(e)
+            msg += "Could not gather information\n"
+            
+        msg += "Current SD-Card Usage:\n"
+        try:
+            # get the current storage level
+            storage = cmd_output("df -h | grep /dev/root").split(' ')
+            i = 1
+            x = 1
+            while storage[1] == "" or storage[2]== "":
+                if storage[x] == '':
+                    storage[x] = storage[i+1]
+                    i += 1
+                else:
+                    x += 1
+                    i += 1
+            msg += '{1} of {0}\n'.format(storage[1], storage[2])
+        except Exception as e:
+            print(e)
+            msg += "Could not gather information\n"
+
         self.message = msg
         self.top = 0
         self.split_into_lines()

@@ -32,7 +32,8 @@ class Control():
         """
         function to be called on userinterface startup
         """
-        sleep(60)
+        # run as long as not terminated
+        pause()
         
     def set_view(self, view):
         """

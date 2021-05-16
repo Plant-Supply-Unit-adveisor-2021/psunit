@@ -96,7 +96,7 @@ class Menu(Viewable):
         """
         renders the menu and shows it on OLED
         """
-        draw = self.control.oled.get_canvas()
+        draw = self.control.oled.get_canvas(empty=True)
         count = 0
         for i in range(self.top, min(self.top+4, len(self.entries))):
             if i == self.active:
@@ -188,7 +188,7 @@ class MsgViewer(Viewable):
         """
         render message view
         """
-        draw = self.control.oled.get_canvas()
+        draw = self.control.oled.get_canvas(empty=True)
         # display BACK at the very top
         draw.line([0, 0, 128, 0], fill=255, width=1)
         draw.line([0, 15, 128, 15], fill=255, width=1)
