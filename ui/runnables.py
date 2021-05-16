@@ -207,14 +207,29 @@ class MsgViewer(Viewable):
         self.control.oled.show()
 
 
-class LogFileViewer(MsgViewer):
+class DynamicMsgViewer(MsgViewer):
+    """
+    class to be used as parent class for views dynamicly rendering the message
+    """
+    def __init__(self, *args, **kwargs):
+        # Do NOT forget to hand over back_view and control
+        # hand over no message for now
+        super().__init__('', *args, **kwargs)
+    
+    def run(self):
+        # resplit message and reset top
+        self.top = 0
+        self.split_into_lines()
+        super().run()
+
+
+class LogFileViewer(DynamicMsgViewer):
     """
     class to show the content of a log file
     """
     def __init__(self, path, *args, **kwargs):
         # Do NOT forget to hand over back_view and control
-        # hand over no message for now
-        super().__init__('', *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.path = path
         
     def run(self):
@@ -228,7 +243,60 @@ class LogFileViewer(MsgViewer):
         except Exception:
             print(format_exc())
             self.message = 'An error occured during loading log.\n'
-        
-        self.top = 0
-        self.split_into_lines()
         super().run()
+
+
+class ConfirmationViewer(MsgViewer):
+    """
+    class to show a short message and two buttons for confirming an action
+    """
+    def __init__(self, message, confirm_view, back_view, *args, confirm_run=None, **kwargs):
+        # Do NOT forget to hand over control
+        # confirm_run should be runnable or None
+        # confirm_view and back_view should be viewables
+        self.confirm_run = confirm_run
+        self.confirm_view = confirm_view
+        self.selected = False
+        super().__init__(message, back_view, *args, **kwargs)
+        
+    def rot_push(self):
+        if self.selected:
+            # try run confirm_run and show confirm_view
+            if not self.confirm_run is None:
+                self.confirm_run.run()
+            self.confirm_view.run()
+        else:
+            # go back to back_view
+            self.back_view.run()
+        
+    def rot_clk(self):
+        """"
+        function called on rotary turn clkwise
+        """
+        self.selected = not self.selected
+        
+    def rot_cclk(self):
+        """
+        function called on rotary turn counter clkwise
+        """
+        self.selected = not self.selected
+        
+    def show(self):
+        """
+        render confirmation view
+        """
+        draw = self.control.oled.get_canvas(empty=True)
+        
+        # display message at the top
+        y = 0
+        for i in range(0, min(len(self.lines), 4)):
+            draw.text( (2, y) , self.lines[i], font=S_FONT, fill=255)
+            y += 10
+        
+        # display CANCEL and OK at the very top + border for active one
+        x = 64 if self.selected else 0
+        draw.line([x, 48, x+64, 48], fill=255, width=1)
+        draw.line([x, 63, x+64, 63], fill=255, width=1)
+        draw.text( (2, 49) , "CANCEL          OK", font=FONT, fill=255)
+        
+        self.control.oled.show()

@@ -1,5 +1,5 @@
-from ui.runnables import Menu, MsgViewer, LogFileViewer
-from server.interface import SERVER_CONFIG
+from ui.runnables import Menu, DynamicMsgViewer, LogFileViewer, ConfirmationViewer
+from server.interface import get_server_config
 from settings import DATA_DIR
 import subprocess
 from os.path import join
@@ -11,9 +11,10 @@ class MenuTree:
     """
     def __init__(self, control):
         self.main = MainMenu([], control)
-        self.log = LogMenu(self.main, control)
         self.status = StatusMsg(self.main, control)
-        self.main.runnables = [self.status, self.log]
+        self.log = LogMenu(self.main, control)
+        self.registration = RegistrationMenu(self.main, control)
+        self.main.runnables = [self.status, self.log, self.registration]
         
         # run main menu
         self.main.run()
@@ -25,7 +26,7 @@ class MainMenu(Menu):
     """
     def __init__(self, runnables, *args, **kwargs):
         # Do NOT forget to hand over control
-        entries = ["STATUS", "VIEW LOGS", "CURRENT STATS", "WiFi-SETUP", "HALLO"]
+        entries = ["STATUS", "VIEW LOGS", "REGISTRATION", "WiFi-SETUP"]
         super().__init__(entries, runnables, *args, **kwargs)
         
         
@@ -50,15 +51,10 @@ def cmd_output(command):
     return p.stdout
 
 
-class StatusMsg(MsgViewer):
+class StatusMsg(DynamicMsgViewer):
     """
     class to build a message view with core status variables
     """
-    def __init__(self, *args, **kwargs):
-        # Do NOT forget to hand over back_view and control
-        # Hand over no mesage for now
-        super().__init__('', *args, **kwargs)
-        
     def run(self):
         """
         called to show the stats
@@ -69,9 +65,10 @@ class StatusMsg(MsgViewer):
             if len(ip) >= 7:
                 # network connection up
                 msg += ip + "\n"
+                url = get_server_config()['URL']
                 # test ping to psuserver
                 msg += "Current PING to server:\n"
-                ping = cmd_output("ping -c 1 " + SERVER_CONFIG['URL'].split('//')[1] + " | grep avg").split('/')
+                ping = cmd_output("ping -c 1 " + url.split('//')[1] + " | grep avg").split('/')
                 
                 if len(ping) == 7:
                     msg += '{} {}'.format(ping[4], ping[6].split(' ')[1])
@@ -102,7 +99,57 @@ class StatusMsg(MsgViewer):
             msg += "Could not gather information\n"
 
         self.message = msg
-        self.top = 0
-        self.split_into_lines()
         super().run()
+
+
+class PairingKeyViewer(DynamicMsgViewer):
+        # viewer to show the current pairing key
+        def run(self):
+            try:
+                key = get_server_config()['pairing_key']
+                self.message = "Pairing Key of this PSU:\n"
+                self.message += key + '\n'
+                self.message += "Note: The key is a hexadecimal number."
+            except Exception:
+                # print(format_exc())
+                self.message = "Currently there is no pairing key for this "
+                self.message += "PSU available. Please register this PSU first."
+
+            super().run()
+            
+            
+class RSAKeyViewer(DynamicMsgViewer):
+        # viewer to show the current rsa key pair
+        def run(self):
+            try:
+                key = get_server_config()['public_key']
+                self.message = "Public Key of this PSU:\n"
+                self.message += key + '\n'
+                key = get_server_config()['private_key']
+                self.message += "Private Key of this PSU:\n"
+                self.message += key + '\n'
+                self.message += "Note: These keys are RSA-2048 keys."
+            except Exception:
+                # print(format_exc())
+                self.message = "Currently there is no pairing key for this"
+                self.message += "PSU available. Please register this PSU first."
+
+            super().run()
+
+
+class RegistrationMenu(Menu):
+    """
+    menu holding all the stuff which is necessary for the registration
+    """
+    
+    def __init__(self, back_view, *args, **kwargs):
+        entries = []
+        runnables = []
+        entries.append("Current Pairing Key")
+        runnables.append(PairingKeyViewer(self, *args, **kwargs))
+        entries.append("RSA Key Pair")
+        runnables.append(RSAKeyViewer(self, *args, **kwargs))
+        entries.append("BACK")
+        runnables.append(back_view)
+        super().__init__(entries, runnables, *args, **kwargs)
         
