@@ -152,8 +152,15 @@ class MsgViewer(Viewable):
                 # check whether a newline is needed
                 if length > 124:
                     if line == "":
+                        nline = ""
                         # special case line was empty -> word very long
-                        self.lines.append(nline)
+                        for l in word:
+                            nline += l
+                            if draw.textsize(nline, font=S_FONT)[0] > 124:
+                                self.lines.append(line)
+                                nline = l
+                            else:
+                                line = nline
                     else:
                         self.lines.append(line)
                         line = word
