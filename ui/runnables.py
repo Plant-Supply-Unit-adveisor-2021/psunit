@@ -167,6 +167,8 @@ class MsgViewer(Viewable):
                 else:
                     line = nline
             self.lines.append(line)
+            # append info about how to close this Message
+            self.lines.append("-- end [ press to quit ] ")
         except Exception:
             print(format_exc())
             self.message = 'An error occured during spliting the message into lines.\n'
@@ -202,13 +204,9 @@ class MsgViewer(Viewable):
         render message view
         """
         draw = self.control.oled.get_canvas(empty=True)
-        # display BACK at the very top
-        draw.line([0, 0, 128, 0], fill=255, width=1)
-        draw.line([0, 15, 128, 15], fill=255, width=1)
-        draw.text( (2, 1) , "GO BACK", font=FONT, fill=255)
         
-        y = 16
-        for i in range(self.top, min(len(self.lines), self.top+5)):
+        y = 0
+        for i in range(self.top, min(len(self.lines), self.top+7)):
             draw.text( (2, y) , self.lines[i], font=S_FONT, fill=255)
             y += 10
         self.control.oled.show()

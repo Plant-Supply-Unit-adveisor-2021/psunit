@@ -131,7 +131,7 @@ class RSAKeyViewer(DynamicMsgViewer):
                 self.message += "Note: These keys are RSA-2048 keys."
             except Exception:
                 # print(format_exc())
-                self.message = "Currently there is no pairing key for this"
+                self.message = "Currently there is no key pair for this "
                 self.message += "PSU available. Please register this PSU first."
 
             super().run()
