@@ -14,7 +14,8 @@ class MenuTree:
         self.status = StatusMsg(self.main, control)
         self.log = LogMenu(self.main, control)
         self.registration = RegistrationMenu(self.main, control)
-        self.main.runnables = [self.status, self.log, self.registration]
+        self.wifi = WiFiMenu(self.main, control)
+        self.main.runnables = [self.status, self.log, self.registration, self.wifi]
         
         # run main menu
         self.main.run()
@@ -98,7 +99,7 @@ class StatusMsg(DynamicMsgViewer):
             print(format_exc())
             msg += "Could not gather information\n"
 
-        self.message = msg
+        self.message = msg + "To refresh just go back and reenter this view."
         super().run()
 
 
@@ -192,3 +193,53 @@ class RegistrationMenu(Menu):
         runnables.append(back_view)
         super().__init__(entries, runnables, *args, **kwargs)
         
+
+class WiFiStatus(DynamicMsgViewer):
+    """
+    view to show the current WiFi-staus
+    """
+    def run(self):
+        msg = "Current WiFi status:\n\n"
+        
+        try:
+            # gather wifi status and put infos in a dict
+            data = cmd_output("wpa_cli -i wlan0 status").split('\n')
+            info = dict()
+            for d in data:
+                vs = d.split('=')
+                if len(vs) == 2:
+                    info[vs[0]] = vs[1]
+            if info['wpa_state'] == 'COMPLETED':
+                # WiFi connection up
+                msg += "Connetion Status:\nWiFi connected\n"
+                msg += "SSID: " + info['ssid'] + '\n'
+                msg += "IP: " + info['ip_address'] + '\n\n'
+            elif info['wpa_state'] == 'INACTIVE':
+                # WiFi connection down
+                msg += "Connetion Status:\nWiFi currently not connected. Please consider using WPS Connect to start the WiFi connection.\n\n"
+            else:
+                # Something weird
+                msg += "Looks like your PSU's WiFi-Setup is not in good shape right now, it might even be disabled.\n\n"
+            
+                
+        except Exception:
+            print(format_exc())
+            msg += "Could not gather information\n"
+
+        self.message = msg + "To refresh just go back and reenter this view."
+        super().run()
+
+
+class WiFiMenu(Menu):
+    """
+    menu holding all the stuff which is necessary for the WiFi-Setup
+    """
+    
+    def __init__(self, back_view, *args, **kwargs):
+        entries = []
+        runnables = []
+        entries.append("WiFi Status")
+        runnables.append(WiFiStatus(self, *args, **kwargs))
+        entries.append("BACK")
+        runnables.append(back_view)
+        super().__init__(entries, runnables, *args, **kwargs)
