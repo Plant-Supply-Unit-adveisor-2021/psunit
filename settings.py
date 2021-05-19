@@ -24,7 +24,6 @@ MEASURE_CONFIG = {
     # DHT22
     'DHT22': True,
     'GPIO_DHT22': 25,
-    'HX711': True,
     # AD-Converter
     # connect ADC to SPI of Raspberry and CE0
     # channels of analog sources (ground humidity and ldr)
@@ -36,6 +35,12 @@ MEASURE_CONFIG = {
     'LDR': True,
     'LDR_MINV': 42,  # value of ADC to be considered 0% light
     'LDR_MAXV': 920, # value of ADC to be considered 100% light
+    # HX711
+    'HX711': True,
+    'GPIO_HX711_DT': 26,
+    'GPIO_HX711_SCK': 19,
+    'HX711_MINV': -4133,
+    'HX711_MAXV': -3510,
     # Pump
     'PUMP': True,
     'GPIO_PUMP': 21,

@@ -15,4 +15,4 @@ def test():
         print("temp: {0:.2f} humid: {1:.2f}".format(temp, humd))
     print("G-Hum: {}".format(measure_ground_humidity()))
     print("Light: {}".format(measure_light_level()))
-    # print(measure_filllevel())
+    print("Filllevel: {}".format(measure_filllevel()))

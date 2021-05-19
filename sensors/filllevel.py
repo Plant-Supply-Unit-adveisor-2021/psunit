@@ -1,71 +1,40 @@
 from sensors.hx711 import HX711
+from settings import MEASURE_CONFIG
 import RPi.GPIO as GPIO
+from traceback import format_exc
 
-# Initialisierung
+# Initalisation
 REFERENCE_UNIT = -43
-TANK_MIN = -4133
-TANK_MAX = -3510
 
 def measure_filllevel():
     """
     function to measure the filllevel
     """
     
-    hx = HX711(5, 6) #(DT_out, pd_sck)
-    hx.set_reading_format("MSB", "MSB")
-    hx.set_reference_unit(REFERENCE_UNIT)
-    hx.reset()
-
-    # Sensoren auslesen
-    val = hx.get_weight(5)
-
-    # Füllstandswertrückgabe
-    if val < TANK_MIN:
-        return 0
+    if not MEASURE_CONFIG['HX711']:
+        print("HX711 not activated in measure.config.json")
+        return None
     
-    if val > TANK_MAX:
-        return 100
-    
-    else:
-        vol = TANK_MAX - TANK_MIN 
-        füllstand = val - TANK_MIN
-        return (füllstand / vol) * 100
-
-    hx.power_down()
-    #hx.power_up()
-    GPIO.cleanup()
-
-def cleanAndExit():
-    GPIO.cleanup()
-
-def tare():
-    hx.tare()
-
-
-def setup():
-    if referenceUnit == 1: 
-        print("Tare...")
-        #tare()
-        
-    
-    while True:
-        try:
-            val = sum(hx.get_raw_data(100))/100
-            print(val)
-            hx.power_down()
-            hx.power_up()
-            time.sleep(0.1)
-        
-        except (KeyboardInterrupt, SystemExit):
-            cleanAndExit()
-
-
-"""
-while True:
     try:
-        tank = füllstand()
-        print("Tankfüllung: %.2f %%" % (tank * 100)) 
-    
-    except (KeyboardInterrupt, SystemExit):
-        cleanAndExit()
-"""
+        # remove bloody warnings
+        # GPIO.setwarnings(False)
+        # GPIO.setmode(GPIO.BCM)
+        
+        hx = HX711(MEASURE_CONFIG['GPIO_HX711_DT'], MEASURE_CONFIG['GPIO_HX711_SCK']) #(DT_out, pd_sck)
+        hx.set_reading_format("MSB", "MSB")
+        hx.set_reference_unit(REFERENCE_UNIT)
+        hx.reset()
+
+        # read sensor data
+        val = hx.get_weight(15)
+        hx.power_down()
+        # GPIO.cleanup()
+        # print(val)
+
+        # calculate result and return it
+        percentage = (val - MEASURE_CONFIG['HX711_MINV'])/(MEASURE_CONFIG['HX711_MAXV'] - MEASURE_CONFIG['HX711_MINV'])
+        return 100 * max(0, min(1, percentage))
+        
+    except Exception:
+        print(format_exc())
+        return None
