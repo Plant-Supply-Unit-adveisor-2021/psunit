@@ -263,7 +263,7 @@ class ConfirmationViewer(MsgViewer):
         self.confirm_view = confirm_view
         self.selected = False
         super().__init__(message, back_view, *args, **kwargs)
-        
+    
     def rot_push(self):
         if self.selected:
             # try run confirm_run and show confirm_view
@@ -278,13 +278,15 @@ class ConfirmationViewer(MsgViewer):
         """"
         function called on rotary turn clkwise
         """
-        self.selected = not self.selected
+        self.selected = True
+        super().rot_clk()
         
     def rot_cclk(self):
         """
         function called on rotary turn counter clkwise
         """
-        self.selected = not self.selected
+        self.selected = False
+        super().rot_cclk()
         
     def show(self):
         """
@@ -294,7 +296,7 @@ class ConfirmationViewer(MsgViewer):
         
         # display message at the top
         y = 0
-        for i in range(0, min(len(self.lines), 4)):
+        for i in range(self.top, min(len(self.lines), self.top+4)):
             draw.text( (2, y) , self.lines[i], font=S_FONT, fill=255)
             y += 10
         
@@ -302,6 +304,6 @@ class ConfirmationViewer(MsgViewer):
         x = 64 if self.selected else 0
         draw.line([x, 48, x+64, 48], fill=255, width=1)
         draw.line([x, 63, x+64, 63], fill=255, width=1)
-        draw.text( (2, 49) , "CANCEL          OK", font=FONT, fill=255)
+        draw.text( (2, 49) , "CANCEL               OK", font=FONT, fill=255)
         
         self.control.oled.show()
