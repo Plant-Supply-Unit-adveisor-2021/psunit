@@ -458,8 +458,12 @@ class Reboot(DynamicMsgViewer):
         self.timeout = False # NO TIMEOUT
         self.message = "Rebooting in 10 seconds.\nPress to abort."
         super().run()
-        self.timer = Timer(12, lambda : cmd_output("sudo reboot now"))
+        self.timer = Timer(12, lambda : self.reboot())
         self.timer.start()
+
+    def reboot(self):
+        self.control.oled.clear()
+        cmd_output("sudo reboot now")
     
     def rot_push(self):
         self.timer.cancel()
@@ -472,8 +476,12 @@ class Shutdown(DynamicMsgViewer):
         self.timeout = False # NO TIMEOUT
         self.message = "Shutting down in 10 seconds.\nPress to abort."
         super().run()
-        self.timer = Timer(12, lambda : cmd_output("sudo shutdown now"))
+        self.timer = Timer(12, lambda : self.shutdown())
         self.timer.start()
+
+    def shutdown(self):
+        self.control.oled.clear()
+        cmd_output("sudo shutdown now")
     
     def rot_push(self):
         self.timer.cancel()
