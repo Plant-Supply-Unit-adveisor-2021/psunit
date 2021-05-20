@@ -455,6 +455,7 @@ class SensorsMenu(Menu):
 class Reboot(DynamicMsgViewer):
     # view used to reboot pi
     def run(self):
+        self.timeout = False # NO TIMEOUT
         self.message = "Rebooting in 10 seconds.\nPress to abort."
         super().run()
         self.timer = Timer(12, lambda : cmd_output("sudo reboot now"))
@@ -468,6 +469,7 @@ class Reboot(DynamicMsgViewer):
 class Shutdown(DynamicMsgViewer):
     # view used to shut down pi
     def run(self):
+        self.timeout = False # NO TIMEOUT
         self.message = "Shutting down in 10 seconds.\nPress to abort."
         super().run()
         self.timer = Timer(12, lambda : cmd_output("sudo shutdown now"))
