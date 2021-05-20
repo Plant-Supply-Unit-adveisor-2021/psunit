@@ -293,7 +293,11 @@ class ConfirmationViewer(MsgViewer):
         """
         self.selected = False
         super().rot_cclk()
-        
+    
+    def run(self):
+        self.top = 0
+        super().run()
+    
     def show(self):
         """
         render confirmation view

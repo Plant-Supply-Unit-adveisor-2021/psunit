@@ -1,5 +1,6 @@
 from ui.runnables import Menu, DynamicMsgViewer, LogFileViewer, ConfirmationViewer
 from server.interface import get_server_config, register_at_server
+from sensors.filllevel import set_extreme_value
 from settings import DATA_DIR
 import subprocess
 from os.path import join
@@ -15,9 +16,10 @@ class MenuTree:
         self.main = MainMenu([], control)
         self.status = StatusMsg(self.main, control)
         self.log = LogMenu(self.main, control)
+        self.sensors = SensorsMenu(self.main, control)
         self.registration = RegistrationMenu(self.main, control)
         self.wifi = WiFiMenu(self.main, control)
-        self.main.runnables = [self.status, self.log, self.registration, self.wifi]
+        self.main.runnables = [self.status, self.log, self.sensors, self.registration, self.wifi]
         
         # run main menu
         self.main.run()
@@ -29,7 +31,7 @@ class MainMenu(Menu):
     """
     def __init__(self, runnables, *args, **kwargs):
         # Do NOT forget to hand over control
-        entries = ["STATUS", "VIEW LOGS", "REGISTRATION", "WiFi-SETUP"]
+        entries = ["STATUS", "VIEW LOGS", "SENSORS", "REGISTRATION", "WiFi-SETUP"]
         super().__init__(entries, runnables, *args, **kwargs)
         
         
@@ -345,6 +347,73 @@ class WiFiMenu(Menu):
         runnables.append(WPSConnectViewer(status, self, *args, **kwargs))
         entries.append("WiFi Networks")
         runnables.append(WiFiList(self, *args, **kwargs))
+        entries.append("BACK")
+        runnables.append(back_view)
+        super().__init__(entries, runnables, *args, **kwargs)
+        
+
+def add_senswarn(view, back_view, *args, **kwargs):
+    # function to add the sensors warning to views
+    warn = "Attention:\n This action may interfere with the automatic measurements "
+    warn += "of your PSU. Pleae do NOT run at minute 0, 15, 30, 45 + 2min of every hour."
+    return ConfirmationViewer(warn, view, back_view, *args, **kwargs)
+
+
+class FilllevelAdjust(DynamicMsgViewer):
+    # view to set a new extreme value for the filllevel
+    def __init__(self, full, *args, **kwargs):
+        # Do NOT forget to hand over back_view and control
+        self.full = full # True -> MaxValue: False -> MinValue
+        self.ready = False
+        super().__init__(*args, **kwargs)
+        
+    def run(self):
+        self.timeout = False # NO TIMEOUT
+        self.message = "Taking a lot of measurements to keep the failure rate low ...\n\n"
+        self.message += "This might take a while, please wait.\n"
+        super().run()
+        
+        # run set_extreme_value and evaluate success
+        if set_extreme_value(self.full):
+            self.message = "Taking a lot of measurements to keep the failure rate low ...\n"
+            self.message += "Success! New value set. You can now quit."
+        else:
+            self.message = "Taking a lot of measurements to keep the failure rate low ...\n"
+            self.message += "Sorry. Something went wrong please retry later or contact support."
+        self.ready = True
+        self.timeout = True # Enable timeout
+        super().run()
+        
+    def rot_push(self):
+        # only allow quitting if ready
+        if self.ready:
+            super().rot_push()
+
+class FilllevelMenu(Menu):
+    """
+    menu holding everzthing considering sensors
+    """
+    def  __init__(self, back_view, *args, **kwargs):
+        entries = []
+        runnables = []
+        entries.append("Adjust MAX")
+        runnables.append(add_senswarn(FilllevelAdjust(True, self, *args, **kwargs), self, *args, **kwargs))
+        entries.append("Adjust MIN")
+        runnables.append(add_senswarn(FilllevelAdjust(False, self, *args, **kwargs), self, *args, **kwargs))
+        entries.append("BACK")
+        runnables.append(back_view)
+        super().__init__(entries, runnables, *args, **kwargs)
+
+        
+class SensorsMenu(Menu):
+    """
+    menu holding everzthing considering sensors
+    """
+    def  __init__(self, back_view, *args, **kwargs):
+        entries = []
+        runnables = []
+        entries.append("Filllevel")
+        runnables.append(FilllevelMenu(self, *args, **kwargs))
         entries.append("BACK")
         runnables.append(back_view)
         super().__init__(entries, runnables, *args, **kwargs)
