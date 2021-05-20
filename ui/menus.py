@@ -230,6 +230,34 @@ class WiFiStatus(DynamicMsgViewer):
         super().run()
 
 
+class WiFiList(DynamicMsgViewer):
+    """
+    view to show a list of al currently available WiFi-Networks
+    """
+    def run(self):
+        msg = "List of all current available networks:\n\n"
+        try:
+            # start_scan
+            if not cmd_output("wpa_cli -i wlan0 scan") == "OK\n":
+                msg += "Sorry. The WiFi-Scan failed\n"
+            # get results
+            raw = cmd_output("wpa_cli -i wlan0 scan_results")
+            for l in raw.split('\n'):
+                info = l.split("\t")
+                if len(info) != 5:
+                    continue
+                msg += info[4]
+                if 'WPS' in info[3]:
+                    msg += " [WPS]"
+                msg += '\n'
+        except Exception:
+            print(format_exc())
+            msg += "Could not gather information\n"
+
+        self.message = msg + "\nTo refresh just go back and reenter this view."
+        super().run()
+
+
 class WiFiMenu(Menu):
     """
     menu holding all the stuff which is necessary for the WiFi-Setup
@@ -240,6 +268,8 @@ class WiFiMenu(Menu):
         runnables = []
         entries.append("WiFi Status")
         runnables.append(WiFiStatus(self, *args, **kwargs))
+        entries.append("WiFi Networks")
+        runnables.append(WiFiList(self, *args, **kwargs))
         entries.append("BACK")
         runnables.append(back_view)
         super().__init__(entries, runnables, *args, **kwargs)
