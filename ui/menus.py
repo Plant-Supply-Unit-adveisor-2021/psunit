@@ -43,10 +43,10 @@ class LogMenu(Menu):
     """
     def __init__(self, back_view, *args, **kwargs):
         # Do NOT forget to hand over control
-        entries = ["measure.log", "watering.log", "push.log", "BACK"]
+        entries = ["measure.log", "water.log", "push.log", "BACK"]
         runnables = []
         runnables.append(LogFileViewer(join(DATA_DIR, 'measure.log'), self,*args, **kwargs))
-        runnables.append(LogFileViewer(join(DATA_DIR, 'watering.log'), self, *args, **kwargs))
+        runnables.append(LogFileViewer(join(DATA_DIR, 'water.log'), self, *args, **kwargs))
         runnables.append(LogFileViewer(join(DATA_DIR, 'push.log'), self, *args, **kwargs))
         runnables.append(back_view)
         super().__init__(entries, runnables, *args, **kwargs)
