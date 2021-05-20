@@ -23,7 +23,7 @@ MC_FILE = os.path.join(DATA_DIR, "measure.config.json")
 MEASURE_CONFIG = {
     # DHT22
     'DHT22': True,
-    'GPIO_DHT22': 25,
+    'GPIO_DHT22': 17,
     # AD-Converter
     # connect ADC to SPI of Raspberry and CE0
     # channels of analog sources (ground humidity and ldr)
@@ -43,16 +43,16 @@ MEASURE_CONFIG = {
     'HX711_MAXV': -3510,
     # Pump
     'PUMP': True,
-    'GPIO_PUMP': 21,
+    'GPIO_PUMP': 15,
     # Rotary Encoder
     'ROTARY_ENC': True,
-    'GPIO_ROT_CLK': 27,
-    'GPIO_ROT_DT': 22,
-    'GPIO_ROT_SW': 17,
+    'GPIO_ROT_CLK': 21,
+    'GPIO_ROT_DT': 20,
+    'GPIO_ROT_SW': 16,
     # OLED Display at I2C of Raspi
     'OLED': True,
-    'OLED_TIMEOUT': 5,
-    'OLED_SPLASH_SCREEN': 1,
+    'OLED_TIMEOUT': 10,
+    'OLED_SPLASH_SCREEN': 2,
     # Camera at camera connector
     'CAMERA': True,
 }
