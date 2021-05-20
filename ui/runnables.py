@@ -296,6 +296,7 @@ class ConfirmationViewer(MsgViewer):
     
     def run(self):
         self.top = 0
+        self.selected = False
         super().run()
     
     def show(self):

@@ -1,6 +1,8 @@
 from ui.runnables import Menu, DynamicMsgViewer, LogFileViewer, ConfirmationViewer
 from server.interface import get_server_config, register_at_server
-from sensors.filllevel import set_extreme_value
+from sensors.filllevel import set_extreme_value, measure_filllevel
+from sensors.DHT22 import measure_temp_ahum
+from sensors.adconverter import measure_ground_humidity, measure_light_level
 from settings import DATA_DIR
 import subprocess
 from os.path import join
@@ -404,6 +406,34 @@ class FilllevelMenu(Menu):
         runnables.append(back_view)
         super().__init__(entries, runnables, *args, **kwargs)
 
+
+class SensorsTest(DynamicMsgViewer):
+    # view to test all sensors and display data
+    def run(self):
+        
+        self.timeout = False # NO TIMEOUT
+        self.message = "Taking a measurements ...\n\n"
+        self.message += "This might take a while, please wait.\n\n"
+        super().run()
+        self.message = "Taking a measurements ...\n"
+        
+        try:
+            temp, humd = measure_temp_ahum()
+            if not temp is None and not humd is None: 
+                self.message += "Temperature: {0:.1f}°C\nAir Humidity: {1:.0f}%\n".format(temp, humd)
+            else:
+                self.message += "DHT22 did not deliver data.\n"
+            self.message += "Ground Humidity: {0:.1f}%\n".format(measure_ground_humidity())
+            self.message += "Light: {0:.0f}%\n".format(measure_light_level())
+            self.message += "Filllevel: {0:.0f}%\n".format(measure_filllevel())
+            
+        except Exception:
+            print(format_exc)
+            self.message += "Sorry. There was an error during measuring."
+        
+        self.timeout = True # Enable timeout
+        super().run()
+
         
 class SensorsMenu(Menu):
     """
@@ -412,6 +442,8 @@ class SensorsMenu(Menu):
     def  __init__(self, back_view, *args, **kwargs):
         entries = []
         runnables = []
+        entries.append("Sensor Test")
+        runnables.append(add_senswarn(SensorsTest(self, *args, **kwargs), self, *args, **kwargs))
         entries.append("Filllevel")
         runnables.append(FilllevelMenu(self, *args, **kwargs))
         entries.append("BACK")
