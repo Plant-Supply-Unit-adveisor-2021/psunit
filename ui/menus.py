@@ -7,7 +7,7 @@ from settings import DATA_DIR
 import subprocess
 from os.path import join
 from traceback import format_exc
-from threading import Thread
+from threading import Thread, Timer
 from time import sleep
 
 class MenuTree:
@@ -21,7 +21,8 @@ class MenuTree:
         self.sensors = SensorsMenu(self.main, control)
         self.registration = RegistrationMenu(self.main, control)
         self.wifi = WiFiMenu(self.main, control)
-        self.main.runnables = [self.status, self.log, self.sensors, self.registration, self.wifi]
+        self.power = PowerMenu(self.main, control)
+        self.main.runnables = [self.status, self.log, self.sensors, self.registration, self.wifi, self.power]
         
         # run main menu
         self.main.run()
@@ -33,7 +34,7 @@ class MainMenu(Menu):
     """
     def __init__(self, runnables, *args, **kwargs):
         # Do NOT forget to hand over control
-        entries = ["STATUS", "VIEW LOGS", "SENSORS", "REGISTRATION", "WiFi-SETUP"]
+        entries = ["STATUS", "VIEW LOGS", "SENSORS", "REGISTRATION", "WiFi-SETUP", "POWER"]
         super().__init__(entries, runnables, *args, **kwargs)
         
         
@@ -437,7 +438,7 @@ class SensorsTest(DynamicMsgViewer):
         
 class SensorsMenu(Menu):
     """
-    menu holding everzthing considering sensors
+    menu holding everything considering sensors
     """
     def  __init__(self, back_view, *args, **kwargs):
         entries = []
@@ -449,3 +450,46 @@ class SensorsMenu(Menu):
         entries.append("BACK")
         runnables.append(back_view)
         super().__init__(entries, runnables, *args, **kwargs)
+
+
+class Reboot(DynamicMsgViewer):
+    # view used to reboot pi
+    def run(self):
+        self.message = "Rebooting in 10 seconds.\nPress to abort."
+        super().run()
+        self.timer = Timer(12, lambda : cmd_output("sudo reboot now"))
+        self.timer.start()
+    
+    def rot_push(self):
+        self.timer.cancel()
+        super().rot_push()
+        
+        
+class Shutdown(DynamicMsgViewer):
+    # view used to shut down pi
+    def run(self):
+        self.message = "Shutting down in 10 seconds.\nPress to abort."
+        super().run()
+        self.timer = Timer(12, lambda : cmd_output("sudo shutdown now"))
+        self.timer.start()
+    
+    def rot_push(self):
+        self.timer.cancel()
+        super().rot_push()
+        
+
+class PowerMenu(Menu):
+    """
+    menu for shutdown and reboot
+    """
+    def  __init__(self, back_view, *args, **kwargs):
+        entries = []
+        runnables = []
+        entries.append("Reboot")
+        runnables.append(Reboot(self, *args, **kwargs))
+        entries.append("Shutdown")
+        runnables.append(Shutdown(self, *args, **kwargs))
+        entries.append("BACK")
+        runnables.append(back_view)
+        super().__init__(entries, runnables, *args, **kwargs)
+    
