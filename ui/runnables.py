@@ -1,4 +1,5 @@
 from ui.display import FONT, S_FONT
+from traceback import format_exc
 
 
 class Runnable:
@@ -96,7 +97,7 @@ class Menu(Viewable):
         """
         renders the menu and shows it on OLED
         """
-        draw = self.control.oled.get_canvas()
+        draw = self.control.oled.get_canvas(empty=True)
         count = 0
         for i in range(self.top, min(self.top+4, len(self.entries))):
             if i == self.active:
@@ -120,35 +121,61 @@ class MsgViewer(Viewable):
         self.message = message
         self.split_into_lines()
         self.top = 0
+        # variable used to control the activation of the timeout
+        self.timeout = True
                 
     def split_into_lines(self):
         """
         funtion to split the text into lines
         """
-        draw = self.control.oled.get_canvas()
-        line = ""
-        length = 0
-        for word in self.message.split(' '):
-            if line == "":
-                # special case line empty
-                nline = word
-                length = draw.textsize(nline, font=S_FONT)[0]
-            else:
-                nline = line + " " + word
-                length = draw.textsize(nline, font=S_FONT)[0]
-            print(length)
-            if length > 124:
-                if line == "":
-                    # special case line was empty -> word very long
-                    self.lines.append(nline)
-                    length = 0
-                else:
+        try:
+            draw = self.control.oled.get_canvas()
+            line = ""
+            self.lines = []
+            length = 0
+            
+            # make sure newlines will be recognized
+            self.message = self.message.replace('\n', ' \n ')
+            # build lines word by word
+            for word in self.message.split(' '):
+                if word == '\n':
+                    # newline -> jump to newline
                     self.lines.append(line)
-                    line = word
-                    length = draw.textsize(word, font=S_FONT)[0]
-            else:
-                line = nline
-        self.lines.append(line)
+                    line = ""
+                    continue
+                elif line == "":
+                    # special case line empty
+                    nline = word
+                    length = draw.textsize(nline, font=S_FONT)[0]
+                else:
+                    nline = line + " " + word
+                    length = draw.textsize(nline, font=S_FONT)[0]
+                    
+                # check whether a newline is needed
+                if length > 124:
+                    if line == "":
+                        nline = ""
+                        # special case line was empty -> word very long
+                        for l in word:
+                            nline += l
+                            if draw.textsize(nline, font=S_FONT)[0] > 124:
+                                self.lines.append(line)
+                                nline = l
+                            else:
+                                line = nline
+                    else:
+                        self.lines.append(line)
+                        line = word
+                else:
+                    line = nline
+            self.lines.append(line)
+            # append info about how to close this Message
+            self.lines.append("-- end [ press to quit ] ")
+        except Exception:
+            print(format_exc())
+            self.message = 'An error occured during spliting the message into lines.\n'
+            self.split_into_lines()
+    
     
     def rot_push(self):
         # go back to previous view
@@ -178,15 +205,116 @@ class MsgViewer(Viewable):
         """
         render message view
         """
-        draw = self.control.oled.get_canvas()
-        # display BACK at the very top
-        draw.line([0, 0, 128, 0], fill=255, width=1)
-        draw.line([0, 15, 128, 15], fill=255, width=1)
-        draw.text( (2, 1) , "GO BACK", font=FONT, fill=255)
+        draw = self.control.oled.get_canvas(empty=True)
         
-        y = 16
-        for i in range(self.top, min(len(self.lines), self.top+5)):
+        y = 0
+        for i in range(self.top, min(len(self.lines), self.top+7)):
             draw.text( (2, y) , self.lines[i], font=S_FONT, fill=255)
             y += 10
-        self.control.oled.show()
+        if self.timeout:
+            self.control.oled.show()
+        else:
+            # no timeout
+            self.control.oled.show(timeout=-1)
 
+
+class DynamicMsgViewer(MsgViewer):
+    """
+    class to be used as parent class for views dynamicly rendering the message
+    """
+    def __init__(self, *args, **kwargs):
+        # Do NOT forget to hand over back_view and control
+        # hand over no message for now
+        super().__init__('', *args, **kwargs)
+    
+    def run(self):
+        # resplit message and reset top
+        self.top = 0
+        self.split_into_lines()
+        super().run()
+
+
+class LogFileViewer(DynamicMsgViewer):
+    """
+    class to show the content of a log file
+    """
+    def __init__(self, path, *args, **kwargs):
+        # Do NOT forget to hand over back_view and control
+        super().__init__(*args, **kwargs)
+        self.path = path
+        
+    def run(self):
+        """
+        called on starting the view -> get latest log data
+        """
+        try:
+            # open file
+            with open(self.path, 'r') as file:
+                self.message = file.read()
+        except Exception:
+            print(format_exc())
+            self.message = 'An error occured during loading log.\n'
+        super().run()
+
+
+class ConfirmationViewer(MsgViewer):
+    """
+    class to show a short message and two buttons for confirming an action
+    """
+    def __init__(self, message, confirm_view, back_view, *args, confirm_run=None, **kwargs):
+        # Do NOT forget to hand over control
+        # confirm_run should be runnable or None
+        # confirm_view and back_view should be viewables
+        self.confirm_run = confirm_run
+        self.confirm_view = confirm_view
+        self.selected = False
+        super().__init__(message, back_view, *args, **kwargs)
+    
+    def rot_push(self):
+        if self.selected:
+            # try run confirm_run and show confirm_view
+            if not self.confirm_run is None:
+                self.confirm_run.run()
+            self.confirm_view.run()
+        else:
+            # go back to back_view
+            self.back_view.run()
+        
+    def rot_clk(self):
+        """"
+        function called on rotary turn clkwise
+        """
+        self.selected = True
+        super().rot_clk()
+        
+    def rot_cclk(self):
+        """
+        function called on rotary turn counter clkwise
+        """
+        self.selected = False
+        super().rot_cclk()
+    
+    def run(self):
+        self.top = 0
+        self.selected = False
+        super().run()
+    
+    def show(self):
+        """
+        render confirmation view
+        """
+        draw = self.control.oled.get_canvas(empty=True)
+        
+        # display message at the top
+        y = 0
+        for i in range(self.top, min(len(self.lines), self.top+4)):
+            draw.text( (2, y) , self.lines[i], font=S_FONT, fill=255)
+            y += 10
+        
+        # display CANCEL and OK at the very top + border for active one
+        x = 64 if self.selected else 0
+        draw.line([x, 48, x+64, 48], fill=255, width=1)
+        draw.line([x, 63, x+64, 63], fill=255, width=1)
+        draw.text( (2, 49) , "CANCEL               OK", font=FONT, fill=255)
+        
+        self.control.oled.show()

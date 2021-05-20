@@ -40,6 +40,9 @@ else:
     os.mknod(SC_FILE)
     json_dump(SERVER_CONFIG, open(SC_FILE, 'w'))
 
+def get_server_config():
+    # loads the server.config.json and returns it
+    return json_load(open(SC_FILE, 'r'))
 
 def save_server_config():
     """

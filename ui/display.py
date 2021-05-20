@@ -64,7 +64,7 @@ class OLED():
         return ImageDraw.Draw(self.image)
 
     
-    def show(self, *, img=None):
+    def show(self, *, img=None, timeout=MEASURE_CONFIG['OLED_TIMEOUT']):
         """
         shows self.image unless img specified
         """
@@ -78,11 +78,12 @@ class OLED():
         self.disp.display()
         self.alive = True
         
-        # reset timeout
+        # reset timer
         if self.timer.is_alive():
             self.timer.cancel()
-        self.timer = Timer(MEASURE_CONFIG['OLED_TIMEOUT'], lambda : self.clear())
-        self.timer.start()
+        if timeout >= 0:
+            self.timer = Timer(timeout, lambda : self.clear())
+            self.timer.start()
         
         
     def splash_screen(self):

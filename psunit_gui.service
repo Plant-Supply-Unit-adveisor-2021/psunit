@@ -1,0 +1,11 @@
+[Unit]
+Description=Service to host the GUI of the Plant Supply Unit
+
+[Service]
+Type=simple
+User=pi
+# adopt to your path to psunit
+ExecStart=/usr/bin/python3 /home/pi/psunit/userinterface.py
+
+[Install]
+WantedBy=multi-user.target
