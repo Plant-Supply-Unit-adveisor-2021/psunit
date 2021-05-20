@@ -413,7 +413,7 @@ class SensorsTest(DynamicMsgViewer):
     def run(self):
         
         self.timeout = False # NO TIMEOUT
-        self.message = "Taking a measurements ...\n\n"
+        self.message = "Taking measurements ...\n\n"
         self.message += "This might take a while, please wait.\n\n"
         super().run()
         self.message = "Taking a measurements ...\n"
