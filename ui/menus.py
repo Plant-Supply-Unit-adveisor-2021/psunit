@@ -4,6 +4,8 @@ from settings import DATA_DIR
 import subprocess
 from os.path import join
 from traceback import format_exc
+from threading import Thread
+from time import sleep
 
 class MenuTree:
     """
@@ -157,6 +159,7 @@ class IdentityKeyViewer(DynamicMsgViewer):
 class RegistrationViewer(DynamicMsgViewer):
     # viewer to register PSU at the server and show the success of this operation
     def run(self):
+        self.timeout = False # NO TIMEOUT
         self.message = "Trying to register PSU at server. This might take a short while. Keep this view open!"
         super().run()
         try:
@@ -194,6 +197,17 @@ class RegistrationMenu(Menu):
         super().__init__(entries, runnables, *args, **kwargs)
         
 
+def get_wifi_status():
+    # returns dict with values from wpa_cli -i wlan0 status
+    data = cmd_output("wpa_cli -i wlan0 status").split('\n')
+    info = dict()
+    for d in data:
+        vs = d.split('=')
+        if len(vs) == 2:
+            info[vs[0]] = vs[1]
+    return info
+
+
 class WiFiStatus(DynamicMsgViewer):
     """
     view to show the current WiFi-staus
@@ -203,18 +217,13 @@ class WiFiStatus(DynamicMsgViewer):
         
         try:
             # gather wifi status and put infos in a dict
-            data = cmd_output("wpa_cli -i wlan0 status").split('\n')
-            info = dict()
-            for d in data:
-                vs = d.split('=')
-                if len(vs) == 2:
-                    info[vs[0]] = vs[1]
+            info = get_wifi_status()
             if info['wpa_state'] == 'COMPLETED':
                 # WiFi connection up
                 msg += "Connetion Status:\nWiFi connected\n"
                 msg += "SSID: " + info['ssid'] + '\n'
                 msg += "IP: " + info['ip_address'] + '\n\n'
-            elif info['wpa_state'] == 'INACTIVE':
+            elif info['wpa_state'] == 'INACTIVE' or info['wpa_state'] == 'SCANNING':
                 # WiFi connection down
                 msg += "Connetion Status:\nWiFi currently not connected. Please consider using WPS Connect to start the WiFi connection.\n\n"
             else:
@@ -258,6 +267,69 @@ class WiFiList(DynamicMsgViewer):
         super().run()
 
 
+class WiFiStatusMonitor(Thread):
+    # thread to check the status of WiFi and redirect to WiFiStatus if connected
+    
+    def __init__(self, view):
+        super().__init__(daemon=True)
+        self.view = view
+        self.stopped = False
+    
+    def stop(self):
+        self.stopped = True
+    
+    def run(self):
+        while True:
+            try:
+                if self.stopped:
+                    break
+                if get_wifi_status()['wpa_state'] == 'COMPLETED':
+                    # sleep shortly to allow the PSU to get an IP Address
+                    sleep(5)
+                    self.view.run()
+                    break
+                sleep(2)
+            except:
+                print(format_exc())
+                break
+
+
+class WPSConnectViewer(DynamicMsgViewer):
+    # viewer to connect PSU to WiFi via WPS
+    
+    def __init__(self, status_view, *args, **kwargs):
+        # Do NOT forget to hand over back_view and control
+        self.status_view = status_view
+        super().__init__(*args, **kwargs)
+    
+    def run(self):
+        self.timeout = False # NO TIMEOUT
+        self.message = "WPS-Connect\n"
+        try:
+            if cmd_output("wpa_cli -i wlan0 wps_pbc") != "OK\n":
+                self.message += "Sorry. There went something wrong during preparing this PSU for WPS Connect.\n"
+            else:
+                self.message += "Your PSU is now in WPS-Connect-Mode for the next 2 minutes.\n"
+                self.message += "For connecting just press the WPS Connect Button of your WiFi router.\n"
+                self.message += "You might need to activate WPS Push-Button-Configuration in your routers settings.\n"
+                self.message += "After the PSU has been conntected to your WiFi you will be presented with the current WiFi status.\n"
+                self.message += "Closing this view will cancel WPS-Connect-Mode.\n"
+                self.monitor = WiFiStatusMonitor(self.status_view)
+                self.monitor.start()
+        except Exception:
+            print(format_exc)
+            self.message += "Sorry. There was an error during preparing this PSU for WPS Connect."
+        super().run()
+        
+    def rot_push(self):
+        # cancel wps mode
+        cmd_output("wpa_cli -i wlan0 wps_cancel")
+        # cancel monitor
+        if self.monitor:
+            self.monitor.stop()
+        super().rot_push()
+
+
 class WiFiMenu(Menu):
     """
     menu holding all the stuff which is necessary for the WiFi-Setup
@@ -267,7 +339,10 @@ class WiFiMenu(Menu):
         entries = []
         runnables = []
         entries.append("WiFi Status")
-        runnables.append(WiFiStatus(self, *args, **kwargs))
+        status = WiFiStatus(self, *args, **kwargs)
+        runnables.append(status)
+        entries.append("WPS Connect")
+        runnables.append(WPSConnectViewer(status, self, *args, **kwargs))
         entries.append("WiFi Networks")
         runnables.append(WiFiList(self, *args, **kwargs))
         entries.append("BACK")

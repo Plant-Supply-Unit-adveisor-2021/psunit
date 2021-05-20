@@ -121,6 +121,8 @@ class MsgViewer(Viewable):
         self.message = message
         self.split_into_lines()
         self.top = 0
+        # variable used to control the activation of the timeout
+        self.timeout = True
                 
     def split_into_lines(self):
         """
@@ -209,7 +211,11 @@ class MsgViewer(Viewable):
         for i in range(self.top, min(len(self.lines), self.top+7)):
             draw.text( (2, y) , self.lines[i], font=S_FONT, fill=255)
             y += 10
-        self.control.oled.show()
+        if self.timeout:
+            self.control.oled.show()
+        else:
+            # no timeout
+            self.control.oled.show(timeout=-1)
 
 
 class DynamicMsgViewer(MsgViewer):
