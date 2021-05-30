@@ -4,6 +4,7 @@ from json.decoder import JSONDecodeError
 
 from time import sleep
 from datetime import datetime, timedelta
+from traceback import format_exc
 
 import requests
 from requests.exceptions import RequestException
@@ -263,24 +264,28 @@ def push_data():
 
         # iterate through entries
         for line in file.readlines():
-            data = line.split(';')
+            try:
+                data = line.split(';')
 
-            if len(data) != 6:
-                # non valid data
-                continue
-            if datetime.strptime(data[0], '%Y-%m-%d_%H-%M-%S') - last <= timedelta():
-                # data already pushed
-                continue
+                if len(data) != 6:
+                    # non valid data
+                    continue
+                if datetime.strptime(data[0], '%Y-%m-%d_%H-%M-%S') - last <= timedelta():
+                    # data already pushed
+                    continue
 
-            if post_data(data[1], data[2], data[3], data[4], data[5], data[0], session=session):
-                # worked out fine -> set last push to this timestamp
-                SERVER_CONFIG['last_push'] = data[0]
-                print("Pushed Measurement from {}".format(data[0]))
-            else:
-                # something wrong -> try later
-                save_server_config()
-                file.close()
-                return False
+                if post_data(data[1], data[2], data[3], data[4], data[5], data[0], session=session):
+                    # worked out fine -> set last push to this timestamp
+                    SERVER_CONFIG['last_push'] = data[0]
+                    print("Pushed Measurement from {}".format(data[0]))
+                else:
+                    # something wrong -> try later
+                    save_server_config()
+                    file.close()
+                    return False
+            except Exception:
+                print(format_exc())
+                print('Could not parse line: "{}"'.format(line))
 
         # close file and set current to the next day
         file.close()
